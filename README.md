@@ -1,0 +1,105 @@
+# OWASP RAT Modern
+
+OWASP RAT Modern is a modernized reference implementation for automating OWASP ASVS task management. It pairs a role-aware React UI (shadcn/ui + Tailwind) with a lightweight Fastify backend that exposes ASVS checklists and a pluggable ticketing integration layer. The initial adapter targets Broadcom Rally using OAuth, and the backend is intentionally structured so additional systems (e.g., Jira) can be swapped in with minimal friction.
+
+## Repository layout
+
+```
+.
+├── frontend/   # Vite + React + shadcn/ui experience
+└── backend/    # Fastify API + ticketing adapters
+```
+
+## Quick start
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Environment variables:
+
+- `VITE_API_BASE_URL` – defaults to `http://localhost:4000` when unset.
+
+### Backend
+
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+Key environment variables (see `.env.example` below):
+
+- `PORT` (default `4000`)
+- `CLIENT_ORIGIN` (default `http://localhost:5173`)
+- `RALLY_CLIENT_ID`
+- `RALLY_CLIENT_SECRET`
+- `RALLY_REDIRECT_URI`
+- `MOCK_USER_ID`, `MOCK_USER_NAME`, `MOCK_USER_EMAIL`, `MOCK_USER_ROLE` (optional: enables environment-driven login for local development)
+- Frontend fallback (no backend): `VITE_MOCK_USER_ID`, `VITE_MOCK_USER_NAME`, `VITE_MOCK_USER_EMAIL`, `VITE_MOCK_USER_ROLE`
+- Optional overrides: `RALLY_AUTHORIZE_URL`, `RALLY_TOKEN_URL`, `RALLY_API_BASE_URL`
+
+Create a `.env` file or export the variables before starting the server.
+
+## Ticketing adapter design
+
+Adapters live under `backend/src/ticketing`. Each adapter implements the `TicketingAdapter` interface:
+
+- `exchangeCode` – Exchanges an OAuth authorization code for access/refresh tokens.
+- `linkTask` – Connects an ASVS task to a work item in the target system.
+- `getWorkItem` – Fetches extra metadata as needed.
+
+The Rally adapter (`adapters/rallyAdapter.ts`) handles OAuth token exchange and demonstrates a simple task-linking request. To register a new adapter (e.g., Jira), create a factory and use `registerTicketingAdapter("jira", createJiraAdapter)` during server bootstrap.
+
+## OAuth flow (Rally)
+
+1. The frontend sends users to `/oauth/rally/authorize`.
+2. Rally redirects to `/oauth/rally/callback` with a code.
+3. The frontend POSTs the code to `/oauth/rally/token`.
+4. The backend uses the Rally adapter to exchange the code for an access token, returning it to the client.
+5. Subsequent ticketing actions (e.g., `/ticketing/rally/link`) supply the access token via the `Authorization: Bearer ...` header.
+
+Security notes:
+
+- Always store secrets outside of the repository (e.g., `.env` injected at runtime).
+- Consider persisting refresh tokens server-side (database or vault) instead of sending them to the client.
+- Add CSRF protection and PKCE when moving beyond local prototyping.
+
+## Frontend overview
+
+- Shadcn/ui + Tailwind for consistent role-based navigation.
+- React Router manages `Login`, `Dashboard`, and `Checklist` pages.
+- Role-aware ASVS checklists are generated via shared metadata (`frontend/src/lib/asvs.ts`).
+- The dashboard demonstrates quick actions and minimal state, ready for expansion.
+
+## Backend overview
+
+- Fastify + Zod for predictable request validation.
+- ASVS checklist metadata is centralized in `backend/src/lib/asvsData.ts`.
+- Ticketing requests resolve to adapters via `backend/src/ticketing/index.ts`.
+- CORS, sensible defaults, and form parsing plugins are pre-configured.
+
+## Extending the project
+
+1. **Add new ASVS roles/tasks** – Update `frontend/src/lib/asvs.ts` and `backend/src/lib/asvsData.ts` (consider extracting to a shared package when stabilised).
+2. **Introduce a new ticketing adapter** – Implement the `TicketingAdapter` interface and register it within `backend/src/ticketing/index.ts`.
+3. **Persist sessions** – Replace the in-memory auth context with a real identity provider and token storage.
+4. **Automate Rally linking** – Enhance `ChecklistPage` to fetch Rally work items, pre-populate suggestions, and display statuses.
+
+## Sample `.env` template
+
+```ini
+PORT=4000
+CLIENT_ORIGIN=http://localhost:5173
+RALLY_CLIENT_ID=replace-me
+RALLY_CLIENT_SECRET=replace-me
+RALLY_REDIRECT_URI=http://localhost:4000/oauth/rally/callback
+MOCK_USER_ID=local-user
+MOCK_USER_NAME=Local User
+MOCK_USER_EMAIL=local@example.com
+MOCK_USER_ROLE=developer
+```
