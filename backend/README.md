@@ -22,10 +22,11 @@ See the project-wide `.env.example` for defaults. At minimum set:
 
 ## Key directories
 
+- `src/data` – Bundled OWASP ASVS 5.0 JSON (synced from upstream GitHub).
 - `src/routes` – Fastify route definitions (checklists, OAuth, ticketing).
 - `src/controllers` – Request handlers / orchestration logic.
 - `src/ticketing` – Adapter interfaces and Rally implementation.
-- `src/lib` – ASVS reference data and helpers.
+- `src/lib` – ASVS reference data, filtering rules, and helpers.
 
 ## Adding a new ticketing adapter
 

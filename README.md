@@ -73,19 +73,19 @@ Security notes:
 
 - Shadcn/ui + Tailwind for consistent role-based navigation.
 - React Router manages `Login`, `Dashboard`, and `Checklist` pages.
-- Role-aware ASVS checklists are generated via shared metadata (`frontend/src/lib/asvs.ts`).
+- Checklist views pull live OWASP ASVS 5.0 data from the backend, filtered by role, level, and application type.
 - The dashboard demonstrates quick actions and minimal state, ready for expansion.
 
 ## Backend overview
 
 - Fastify + Zod for predictable request validation.
-- ASVS checklist metadata is centralized in `backend/src/lib/asvsData.ts`.
+- ASVS checklist metadata is sourced from `backend/src/data/asvs-5.0.0-en.json` and flattened through `backend/src/lib/asvsData.ts`.
 - Ticketing requests resolve to adapters via `backend/src/ticketing/index.ts`.
 - CORS, sensible defaults, and form parsing plugins are pre-configured.
 
 ## Extending the project
 
-1. **Add new ASVS roles/tasks** – Update `frontend/src/lib/asvs.ts` and `backend/src/lib/asvsData.ts` (consider extracting to a shared package when stabilised).
+1. **Adjust ASVS tailoring rules** – Update `backend/src/lib/asvsData.ts` (role/application mappings) and UI messaging as needed.
 2. **Introduce a new ticketing adapter** – Implement the `TicketingAdapter` interface and register it within `backend/src/ticketing/index.ts`.
 3. **Persist sessions** – Replace the in-memory auth context with a real identity provider and token storage.
 4. **Automate Rally linking** – Enhance `ChecklistPage` to fetch Rally work items, pre-populate suggestions, and display statuses.

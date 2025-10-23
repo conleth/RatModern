@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import { AppLayout } from "../components/layout/AppLayout";
 import { Badge } from "../components/ui/badge";
@@ -24,11 +25,11 @@ import {
   APPLICATION_TYPES,
   ASVS_LEVELS,
   AsvsLevel,
-  ApplicationType,
-  buildAsvsTasks
+  ApplicationType
 } from "../lib/asvs";
 import { useAuth } from "../lib/auth";
-import { linkTaskToRally } from "../lib/api";
+import { linkTaskToRally, requestChecklist } from "../lib/api";
+import { ROLE_LABELS } from "../lib/roles";
 
 type ChecklistFilters = {
   level: AsvsLevel;
@@ -45,12 +46,23 @@ export function ChecklistPage() {
   const [workItemId, setWorkItemId] = useState("");
   const hasRallyAccess = Boolean(rallyAccessToken);
 
-  const tasks = useMemo(() => {
-    if (!user) {
-      return [];
-    }
-    return buildAsvsTasks(filters.level, filters.applicationType, user.role);
-  }, [filters, user]);
+  const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
+    queryKey: ["checklist", user?.role, filters.level, filters.applicationType],
+    queryFn: ({ signal }) =>
+      requestChecklist(
+        {
+          level: filters.level,
+          applicationType: filters.applicationType,
+          role: user!.role
+        },
+        signal
+      ),
+    enabled: Boolean(user),
+    staleTime: 5 * 60 * 1000
+  });
+
+  const tasks = data?.tasks ?? [];
+  const metadata = data?.metadata;
 
   if (!user) return null;
 
@@ -67,7 +79,12 @@ export function ChecklistPage() {
       await linkTaskToRally({
         taskId,
         workItemId,
-        accessToken: rallyAccessToken
+        accessToken: rallyAccessToken,
+        metadata: {
+          level: filters.level,
+          applicationType: filters.applicationType,
+          role: user.role
+        }
       });
       setWorkItemId("");
     } catch (error) {
@@ -159,6 +176,21 @@ export function ChecklistPage() {
         </Card>
 
         <div className="space-y-4">
+          {metadata && (
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  {metadata.shortName} v{metadata.version}
+                </CardTitle>
+                <CardDescription>
+                  Showing {metadata.resultCount} controls for{" "}
+                  {ASVS_LEVELS.find((level) => level.value === filters.level)?.label ?? filters.level}{" "}
+                  • {APPLICATION_TYPES.find((type) => type.value === filters.applicationType)?.label ?? filters.applicationType}{" "}
+                  • {ROLE_LABELS[user.role]}
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          )}
           {!hasRallyAccess && (
             <Card>
               <CardHeader>
@@ -170,23 +202,70 @@ export function ChecklistPage() {
               </CardHeader>
             </Card>
           )}
+          {(isLoading || isFetching) && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Loading checklist…</CardTitle>
+                <CardDescription>
+                  Fetching ASVS controls for the selected level and context.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          )}
+          {isError && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Unable to load checklist</CardTitle>
+                <CardDescription>
+                  {error instanceof Error
+                    ? error.message
+                    : "Unexpected error occurred while retrieving ASVS data."}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button variant="secondary" onClick={() => refetch()}>
+                  Retry
+                </Button>
+              </CardContent>
+            </Card>
+          )}
           {tasks.map((task) => (
             <Card key={task.id} id={task.id}>
               <CardHeader>
-                <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                  <div className="space-y-1.5">
-                    <CardTitle>{task.title}</CardTitle>
-                    <CardDescription>{task.description}</CardDescription>
-                  </div>
-                  <Badge>{task.category}</Badge>
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  <Badge variant="outline" className="font-mono uppercase">
+                    {task.shortcode}
+                  </Badge>
+                  <Badge variant="outline">{task.level}</Badge>
+                  <Badge>{task.categoryShortcode}</Badge>
                 </div>
+                <CardTitle className="pt-2 text-base md:text-lg">
+                  {task.section}
+                </CardTitle>
+                <CardDescription>{task.description}</CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div className="text-xs text-muted-foreground">
-                  Suggested Rally type:{" "}
-                  <span className="font-medium uppercase">
-                    {task.rallyMapping?.suggestedWorkItemType}
-                  </span>
+                <div className="space-y-1 text-xs text-muted-foreground">
+                  <div>
+                    Category:{" "}
+                    <span className="font-medium text-foreground">
+                      {task.category}
+                    </span>
+                  </div>
+                  <div>
+                    Recommended roles:{" "}
+                    <span className="font-medium text-foreground">
+                      {task.recommendedRoles
+                        .map((role) => ROLE_LABELS[role] ?? role)
+                        .join(", ")}
+                    </span>
+                  </div>
+                  <div>
+                    Application focus:{" "}
+                    <span className="font-medium text-foreground uppercase">
+                      {task.applicationTypes.join(", ")}
+                    </span>
+                  </div>
                 </div>
                 <Button
                   variant="secondary"
@@ -204,7 +283,7 @@ export function ChecklistPage() {
               </CardContent>
             </Card>
           ))}
-          {tasks.length === 0 && (
+          {tasks.length === 0 && !(isLoading || isFetching) && !isError && (
             <Card>
               <CardHeader>
                 <CardTitle>No tasks available yet</CardTitle>

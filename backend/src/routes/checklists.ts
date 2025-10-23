@@ -2,9 +2,10 @@ import { FastifyInstance } from "fastify";
 import { z } from "zod";
 
 import {
-  buildAsvsChecklist,
+  getAsvsChecklist,
   AsvsLevel,
-  ApplicationType
+  ApplicationType,
+  asvsMetadata
 } from "../lib/asvsData.js";
 import { UserRole } from "../types/auth.js";
 
@@ -34,9 +35,26 @@ export function registerChecklistRoutes(app: FastifyInstance) {
       role: UserRole;
     };
 
-    const tasks = buildAsvsChecklist(level, applicationType, role);
+    const tasks = getAsvsChecklist(level, applicationType, role);
 
-    return { tasks };
+    return {
+      metadata: {
+        ...asvsMetadata,
+        filters: { level, applicationType, role },
+        resultCount: tasks.length
+      },
+      tasks: tasks.map((task) => ({
+        id: task.id,
+        shortcode: task.shortcode,
+        level: `L${task.level}` as AsvsLevel,
+        category: task.category,
+        categoryShortcode: task.categoryShortcode,
+        section: task.section,
+        sectionShortcode: task.sectionShortcode,
+        description: task.description,
+        recommendedRoles: task.recommendedRoles,
+        applicationTypes: task.applicationTypes
+      }))
+    };
   });
 }
-

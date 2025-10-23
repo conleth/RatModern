@@ -1,5 +1,5 @@
 import { AuthenticatedUser, UserRole } from "./auth";
-import { ApplicationType, AsvsLevel, AsvsTask } from "./asvs";
+import { ApplicationType, AsvsLevel } from "./asvs";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000";
 
@@ -7,6 +7,32 @@ export type ChecklistRequest = {
   level: AsvsLevel;
   applicationType: ApplicationType;
   role: UserRole;
+};
+
+export type ChecklistControl = {
+  id: string;
+  shortcode: string;
+  level: AsvsLevel;
+  category: string;
+  categoryShortcode: string;
+  section: string;
+  sectionShortcode: string;
+  description: string;
+  recommendedRoles: UserRole[];
+  applicationTypes: ApplicationType[];
+};
+
+export type ChecklistResponse = {
+  metadata?: {
+    name: string;
+    shortName: string;
+    version: string;
+    description: string;
+    totalControls: number;
+    filters: ChecklistRequest;
+    resultCount: number;
+  };
+  tasks: ChecklistControl[];
 };
 
 export async function authenticateWithRally(code: string) {
@@ -57,7 +83,7 @@ export function getEnvMockUser(): AuthenticatedUser | null {
 export async function requestChecklist(
   params: ChecklistRequest,
   signal?: AbortSignal
-) {
+): Promise<ChecklistResponse> {
   const response = await fetch(`${API_BASE_URL}/checklists`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -69,8 +95,7 @@ export async function requestChecklist(
     throw new Error("Failed to retrieve checklist");
   }
 
-  const { tasks } = (await response.json()) as { tasks: AsvsTask[] };
-  return tasks;
+  return (await response.json()) as ChecklistResponse;
 }
 
 export async function linkTaskToRally({

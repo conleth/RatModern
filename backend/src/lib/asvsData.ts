@@ -1,118 +1,203 @@
+import { readFileSync } from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
 import { UserRole } from "../types/auth.js";
 
 export type AsvsLevel = "L1" | "L2" | "L3";
 export type ApplicationType = "web" | "mobile" | "api";
 
-export type AsvsTask = {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  roles: UserRole[];
-  rallyMapping?: {
-    suggestedWorkItemType: "hierarchical-requirement" | "defect" | "task";
-    defaultPortfolio?: string;
-  };
+type RawAsvsItem = {
+  Shortcode: string;
+  Ordinal: number;
+  Description: string;
+  L: string;
 };
 
-const BASE_TASKS: AsvsTask[] = [
-  {
-    id: "arch-threat-model",
-    title: "Establish threat model",
-    description:
-      "Capture entry points, assets, trust boundaries, and abuse cases grounded in OWASP ASVS scope.",
-    category: "Architecture & Design",
-    roles: ["architect", "executive"],
-    rallyMapping: { suggestedWorkItemType: "hierarchical-requirement" }
-  },
-  {
-    id: "dev-input-validation",
-    title: "Implement context aware input validation",
-    description:
-      "Use central validation libraries with positive validation for critical flows.",
-    category: "Implementation",
-    roles: ["developer", "architect"],
-    rallyMapping: { suggestedWorkItemType: "task" }
-  },
-  {
-    id: "test-auth-flows",
-    title: "Verify authentication flows",
-    description:
-      "Exercise multi-factor and session management tests per ASVS 2.x requirements.",
-    category: "Verification",
-    roles: ["tester", "architect"],
-    rallyMapping: { suggestedWorkItemType: "defect" }
-  },
-  {
-    id: "ba-scope-review",
-    title: "Confirm ASVS scope with stakeholders",
-    description:
-      "Align stakeholders on release scope, regulatory drivers, and required evidence.",
-    category: "Program & Governance",
-    roles: ["business-analyst", "executive"],
-    rallyMapping: { suggestedWorkItemType: "hierarchical-requirement" }
-  },
-  {
-    id: "exec-dashboard",
-    title: "Monitor ASVS readiness",
-    description:
-      "Track completion percentages, outstanding risks, and Rally linkage coverage.",
-    category: "Program & Governance",
-    roles: ["executive"],
-    rallyMapping: { suggestedWorkItemType: "hierarchical-requirement" }
-  }
+type RawAsvsSection = {
+  Shortcode: string;
+  Ordinal: number;
+  Name: string;
+  Items: RawAsvsItem[];
+};
+
+type RawAsvsRequirement = {
+  Shortcode: string;
+  Ordinal: number;
+  ShortName: string;
+  Name: string;
+  Items: RawAsvsSection[];
+};
+
+type RawAsvsDocument = {
+  Name: string;
+  ShortName: string;
+  Version: string;
+  Description: string;
+  Requirements: RawAsvsRequirement[];
+};
+
+export type FlattenedAsvsControl = {
+  id: string;
+  shortcode: string;
+  description: string;
+  level: number;
+  category: string;
+  categoryShortcode: string;
+  section: string;
+  sectionShortcode: string;
+  ordinal: {
+    category: number;
+    section: number;
+    item: number;
+  };
+  recommendedRoles: UserRole[];
+  applicationTypes: ApplicationType[];
+};
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const DATA_PATH = path.join(__dirname, "../data/asvs-5.0.0-en.json");
+
+const rawDocument = JSON.parse(
+  readFileSync(DATA_PATH, { encoding: "utf-8" })
+) as RawAsvsDocument;
+
+const ALL_ROLES: UserRole[] = [
+  "architect",
+  "developer",
+  "tester",
+  "business-analyst",
+  "executive"
 ];
 
-const LEVEL_OVERRIDES: Partial<Record<AsvsLevel, AsvsTask[]>> = {
-  L2: [
-    {
-      id: "api-rate-limits",
-      title: "Apply contextual rate limiting",
-      description:
-        "Enforce per-user and per-token rate limits with Rally linked automation work.",
-      category: "Implementation",
-      roles: ["developer", "architect"],
-      rallyMapping: { suggestedWorkItemType: "task" }
-    }
-  ],
-  L3: [
-    {
-      id: "arch-sast-policy",
-      title: "Mandate SAST policy gates",
-      description:
-        "Integrate policy gates that block builds when ASVS high risk controls regress.",
-      category: "Architecture & Design",
-      roles: ["architect", "executive"],
-      rallyMapping: { suggestedWorkItemType: "hierarchical-requirement" }
-    },
-    {
-      id: "test-redteam",
-      title: "Coordinate adversarial testing",
-      description:
-        "Align red-team exercises to validate Level 3 controls through Rally epics.",
-      category: "Verification",
-      roles: ["tester", "executive"],
-      rallyMapping: { suggestedWorkItemType: "hierarchical-requirement" }
-    }
-  ]
+const ALL_APPLICATION_TYPES: ApplicationType[] = ["web", "mobile", "api"];
+
+const SECTION_ROLE_MAP: Record<string, UserRole[]> = {
+  V1: ["architect", "developer", "business-analyst", "executive"],
+  V2: ["architect", "developer", "tester"],
+  V3: ["architect", "developer", "tester"],
+  V4: ["architect", "developer", "tester"],
+  V5: ["developer", "tester"],
+  V6: ["developer", "tester"],
+  V7: ["developer", "tester"],
+  V8: ["developer", "tester"],
+  V9: ["developer", "tester"],
+  V10: ["architect", "tester"],
+  V11: ["architect", "tester"],
+  V12: ["architect", "tester"],
+  V13: ["architect", "developer", "tester"],
+  V14: ["architect", "business-analyst", "executive"]
 };
 
-export function buildAsvsChecklist(
+const SECTION_APPLICATION_MAP: Record<string, ApplicationType[]> = {
+  V1: ["web", "mobile", "api"],
+  V2: ["web", "mobile", "api"],
+  V3: ["web", "mobile", "api"],
+  V4: ["web", "mobile", "api"],
+  V5: ["web", "mobile", "api"],
+  V6: ["web", "mobile", "api"],
+  V7: ["web", "mobile", "api"],
+  V8: ["web", "mobile"],
+  V9: ["web", "mobile"],
+  V10: ["web", "mobile", "api"],
+  V11: ["web", "mobile"],
+  V12: ["web", "mobile"],
+  V13: ["web", "api"],
+  V14: ["web", "mobile", "api"]
+};
+
+const flattenedControls: FlattenedAsvsControl[] = rawDocument.Requirements.flatMap(
+  (requirement) => {
+    const categoryRoles =
+      SECTION_ROLE_MAP[requirement.Shortcode] ?? ALL_ROLES;
+    const categoryApplications =
+      SECTION_APPLICATION_MAP[requirement.Shortcode] ?? ALL_APPLICATION_TYPES;
+
+    return requirement.Items.flatMap((section) => {
+      return section.Items.map((item) => {
+        const level = Number.parseInt(item.L, 10);
+
+        return {
+          id: item.Shortcode,
+          shortcode: item.Shortcode,
+          description: item.Description,
+          level: Number.isNaN(level) ? 3 : level,
+          category: requirement.Name,
+          categoryShortcode: requirement.Shortcode,
+          section: section.Name,
+          sectionShortcode: section.Shortcode,
+          ordinal: {
+            category: requirement.Ordinal,
+            section: section.Ordinal,
+            item: item.Ordinal
+          },
+          recommendedRoles: categoryRoles,
+          applicationTypes: categoryApplications
+        } satisfies FlattenedAsvsControl;
+      });
+    });
+  }
+);
+
+const controlsById = new Map(
+  flattenedControls.map((control) => [control.id, control])
+);
+
+function levelToNumber(level: AsvsLevel) {
+  switch (level) {
+    case "L1":
+      return 1;
+    case "L2":
+      return 2;
+    case "L3":
+    default:
+      return 3;
+  }
+}
+
+export function getAsvsControlById(id: string) {
+  return controlsById.get(id);
+}
+
+export function getAsvsChecklist(
   level: AsvsLevel,
   applicationType: ApplicationType,
   role: UserRole
-): AsvsTask[] {
-  const roleTasks = BASE_TASKS.filter((task) => task.roles.includes(role));
-  const overrides = LEVEL_OVERRIDES[level]?.filter((task) =>
-    task.roles.includes(role)
-  );
+): FlattenedAsvsControl[] {
+  const maximumLevel = levelToNumber(level);
 
-  const scoped = [...roleTasks, ...(overrides ?? [])];
+  return flattenedControls
+    .filter((control) => {
+      if (control.level > maximumLevel) {
+        return false;
+      }
 
-  // Placeholder for additional filtering by application type in future versions.
-  return scoped.map((task) => ({
-    ...task,
-    rallyMapping: task.rallyMapping ?? { suggestedWorkItemType: "task" }
-  }));
+      if (!control.recommendedRoles.includes(role)) {
+        return false;
+      }
+
+      if (!control.applicationTypes.includes(applicationType)) {
+        return false;
+      }
+
+      return true;
+    })
+    .sort((a, b) => {
+      if (a.categoryShortcode === b.categoryShortcode) {
+        if (a.sectionShortcode === b.sectionShortcode) {
+          return a.ordinal.item - b.ordinal.item;
+        }
+        return a.ordinal.section - b.ordinal.section;
+      }
+      return a.ordinal.category - b.ordinal.category;
+    });
 }
 
+export const asvsMetadata = {
+  name: rawDocument.Name,
+  shortName: rawDocument.ShortName,
+  version: rawDocument.Version,
+  description: rawDocument.Description,
+  totalControls: flattenedControls.length
+};
