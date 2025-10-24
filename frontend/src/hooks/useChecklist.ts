@@ -27,7 +27,8 @@ const INITIAL_FILTERS = {
   applicationType: "web" as ApplicationType,
   discipline: "all" as ChecklistFilters["discipline"],
   technology: "all" as ChecklistFilters["technology"],
-  categories: []
+  categories: [],
+  search: ""
 };
 
 type FilterAction =
@@ -35,7 +36,8 @@ type FilterAction =
   | { type: "setApplicationType"; value: ApplicationType }
   | { type: "setDiscipline"; value: ChecklistFilters["discipline"] }
   | { type: "setTechnology"; value: ChecklistFilters["technology"] }
-  | { type: "setCategories"; value: string[] };
+  | { type: "setCategories"; value: string[] }
+  | { type: "setSearch"; value: string };
 
 const ROLE_DEFAULT_DISCIPLINE: Partial<
   Record<UserRole, DeveloperDiscipline>
@@ -53,6 +55,7 @@ export type ChecklistFilters = {
   discipline: DeveloperDiscipline | "all";
   technology: TechnologyTag | "all";
   categories: string[];
+  search: string;
 };
 
 function filtersReducer(
@@ -111,6 +114,11 @@ function filtersReducer(
       return {
         ...state,
         categories: (action.value ?? []).map((category) => category.toUpperCase())
+      };
+    case "setSearch":
+      return {
+        ...state,
+        search: action.value
       };
     default:
       return state;
@@ -195,7 +203,8 @@ export function useChecklist(role: UserRole | undefined) {
     filters.applicationType,
     filters.discipline,
     filters.technology,
-    filters.categories
+    filters.categories,
+    filters.search
   ]);
 
   const setFilter = useCallback(
@@ -226,6 +235,12 @@ export function useChecklist(role: UserRole | undefined) {
           dispatch({
             type: "setCategories",
             value: (value as string[]) ?? []
+          });
+          break;
+        case "search":
+          dispatch({
+            type: "setSearch",
+            value: (value as string) ?? ""
           });
           break;
         default:

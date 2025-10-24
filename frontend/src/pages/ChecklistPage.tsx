@@ -60,12 +60,39 @@ export function ChecklistPage() {
 
   if (!user) return null;
 
-  const tasks = data?.tasks ?? [];
+  const rawTasks = data?.tasks ?? [];
   const metadata = data?.metadata;
+  const filteredTasks = useMemo(() => {
+    if (!filters.search.trim()) {
+      return rawTasks;
+    }
+    const terms = filters.search
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(Boolean);
+
+    return rawTasks.filter((task) => {
+      const haystack = (
+        `${task.shortcode} ${task.section} ${task.sectionShortcode} ${task.category} ${task.description}`
+      ).toLowerCase();
+      return terms.every((term) => {
+        let index = 0;
+        for (const char of term) {
+          index = haystack.indexOf(char, index);
+          if (index === -1) {
+            return false;
+          }
+          index += 1;
+        }
+        return true;
+      });
+    });
+  }, [rawTasks, filters.search]);
+
   const selectedCount = selectedTaskIds.size;
   const selectedControls = useMemo(
-    () => tasks.filter((task) => selectedTaskIds.has(task.id)),
-    [tasks, selectedTaskIds]
+    () => rawTasks.filter((task) => selectedTaskIds.has(task.id)),
+    [rawTasks, selectedTaskIds]
   );
   const levelLabel =
     ASVS_LEVELS.find((level) => level.value === filters.level)?.label ?? filters.level;
@@ -316,7 +343,7 @@ export function ChecklistPage() {
           )}
 
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {tasks.map((task) => (
+            {filteredTasks.map((task) => (
               <ControlCard
                 key={task.id}
                 control={task}
@@ -330,7 +357,7 @@ export function ChecklistPage() {
             ))}
           </div>
 
-          {tasks.length === 0 && !(isLoading || isFetching) && !isError && (
+          {filteredTasks.length === 0 && !(isLoading || isFetching) && !isError && (
             <Card>
               <CardHeader>
                 <CardTitle>No controls available</CardTitle>

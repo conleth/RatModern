@@ -65,7 +65,7 @@ export function FilterBar({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           <div className="space-y-2">
             <Label htmlFor="filter-level">ASVS level</Label>
             <Select
@@ -161,6 +161,15 @@ export function FilterBar({
             </Select>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="filter-search">Search controls</Label>
+            <Input
+              id="filter-search"
+              value={filters.search}
+              placeholder="Fuzzy search by description, section, or shortcode"
+              onChange={(event) => onFilterChange("search", event.target.value)}
+            />
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -181,7 +190,12 @@ export function FilterBar({
                 title={category.name}
                 className="flex-1 basis-[calc(33%-0.5rem)] text-xs sm:basis-[calc(20%-0.5rem)]"
               >
-                <span className="font-mono">{category.shortcode}</span>
+                <div className="flex flex-col items-center gap-1">
+                  <span className="font-mono text-sm">{category.shortcode}</span>
+                  <span className="text-[10px] font-medium text-muted-foreground sm:text-[11px]">
+                    {category.name}
+                  </span>
+                </div>
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
