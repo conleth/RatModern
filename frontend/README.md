@@ -19,7 +19,8 @@ npm run lint     # Lint TypeScript/TSX files
 ## Structure
 
 - `src/pages` – Top-level routes (`Login`, `Dashboard`, `Checklist`).
-- `src/components` – shadcn/ui primitives and layout composition.
+- `src/components` – shadcn/ui primitives, checklist filter controls, and card components.
+- `src/hooks` – Shared hooks, including checklist orchestration (`useChecklist`).
 - `src/lib` – Shared utilities, ASVS metadata, API helpers, and developer filter options.
 - `src/styles/globals.css` – Tailwind base styles and shadcn tokens.
 
