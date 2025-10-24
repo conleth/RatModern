@@ -53,3 +53,57 @@ export function getTechnologyLabel(value: TechnologyTag) {
 export function getDisciplineLabel(value: DeveloperDiscipline) {
   return disciplineLabelMap[value] ?? value;
 }
+
+const technologyToDisciplines: Record<TechnologyTag, DeveloperDiscipline[]> = {
+  typescript: ["frontend", "fullstack"],
+  javascript: ["frontend", "fullstack"],
+  python: ["backend", "data-analyst", "fullstack"],
+  java: ["backend", "mobile", "fullstack"],
+  csharp: ["backend", "fullstack"],
+  go: ["backend", "devops"],
+  ruby: ["backend", "fullstack"],
+  php: ["backend", "fullstack"],
+  kotlin: ["mobile", "backend"],
+  swift: ["mobile"]
+};
+
+const disciplineToTechnologies: Record<
+  DeveloperDiscipline,
+  TechnologyTag[]
+> = {
+  frontend: ["typescript", "javascript"],
+  backend: ["typescript", "javascript", "python", "java", "csharp", "go", "ruby", "php", "kotlin"],
+  mobile: ["kotlin", "swift", "java", "typescript"],
+  fullstack: ["typescript", "javascript", "python", "java", "csharp", "ruby", "php"],
+  "data-analyst": ["python"],
+  devops: ["go", "python", "java"],
+  "security-engineer": [
+    "python",
+    "java",
+    "csharp",
+    "go",
+    "typescript",
+    "javascript"
+  ],
+  "qa-engineer": ["typescript", "javascript", "python", "java"],
+  "project-manager": [
+    "typescript",
+    "javascript",
+    "python",
+    "java",
+    "csharp",
+    "go",
+    "ruby",
+    "php",
+    "kotlin",
+    "swift"
+  ]
+};
+
+export function getDisciplinesForTechnology(technology: TechnologyTag) {
+  return technologyToDisciplines[technology] ?? DISCIPLINE_OPTIONS.map((option) => option.value);
+}
+
+export function getTechnologiesForDiscipline(discipline: DeveloperDiscipline) {
+  return disciplineToTechnologies[discipline] ?? TECHNOLOGY_OPTIONS.map((option) => option.value);
+}
