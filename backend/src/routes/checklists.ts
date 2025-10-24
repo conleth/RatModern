@@ -7,7 +7,8 @@ import {
   ApplicationType,
   DeveloperDiscipline,
   TechnologyTag,
-  asvsMetadata
+  asvsMetadata,
+  ASVS_CATEGORIES
 } from "../lib/asvsData.js";
 import { UserRole } from "../types/auth.js";
 
@@ -49,10 +50,18 @@ const checklistRequestSchema = z.object({
       "project-manager"
     ])
     .optional()
+    .nullable(),
+  categories: z
+    .array(z.string())
+    .optional()
     .nullable()
 });
 
 export function registerChecklistRoutes(app: FastifyInstance) {
+  app.get("/checklists/categories", async () => ({
+    categories: ASVS_CATEGORIES
+  }));
+
   app.post("/checklists", async (request, reply) => {
     const parseResult = checklistRequestSchema.safeParse(request.body);
 
@@ -60,18 +69,21 @@ export function registerChecklistRoutes(app: FastifyInstance) {
       return reply.badRequest("Invalid checklist request payload");
     }
 
-    const { level, applicationType, role, technology, discipline } =
+    const { level, applicationType, role, technology, discipline, categories } =
       parseResult.data as {
         level: AsvsLevel;
         applicationType: ApplicationType;
         role: UserRole;
         technology?: TechnologyTag | null;
         discipline?: DeveloperDiscipline | null;
+        categories?: string[] | null;
       };
 
     const tasks = getAsvsChecklist(level, applicationType, role, {
       technology: technology ?? undefined,
-      discipline: discipline ?? undefined
+      discipline: discipline ?? undefined,
+      categories:
+        categories?.map((category) => category.toUpperCase()) ?? undefined
     });
 
     return {
@@ -82,7 +94,8 @@ export function registerChecklistRoutes(app: FastifyInstance) {
           applicationType,
           role,
           technology: technology ?? null,
-          discipline: discipline ?? null
+          discipline: discipline ?? null,
+          categories: categories ?? null
         },
         resultCount: tasks.length
       },

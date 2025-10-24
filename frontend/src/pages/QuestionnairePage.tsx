@@ -101,7 +101,8 @@ export function QuestionnairePage() {
           level: recommendation.level,
           applicationType: recommendation.applicationType,
           discipline: recommendation.discipline,
-          technology: recommendation.technology
+          technology: recommendation.technology,
+          categories: recommendation.recommendedCategories
         }
       }
     });

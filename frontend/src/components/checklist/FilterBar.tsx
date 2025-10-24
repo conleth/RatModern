@@ -17,11 +17,13 @@ import {
 import { Button } from "../ui/button";
 
 import { ASVS_LEVELS, APPLICATION_TYPES } from "../../lib/asvs";
-import type { ChecklistFilters, SelectionMode } from "../../hooks/useChecklist";
+import type { ChecklistFilters } from "../../hooks/useChecklist";
 import type {
   DeveloperDiscipline,
-  TechnologyTag
+  TechnologyTag,
+  AsvsCategory
 } from "../../lib/api";
+import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
 
 type FilterOption<T extends string> = {
   value: T;
@@ -34,38 +36,36 @@ type FilterBarProps = {
     key: K,
     value: ChecklistFilters[K]
   ) => void;
-  selectionMode: SelectionMode;
-  onSelectionModeChange: (mode: SelectionMode) => void;
   workItemId: string;
   onWorkItemIdChange: (value: string) => void;
   selectionCount: number;
   onClearSelection: () => void;
   disciplineOptions: FilterOption<DeveloperDiscipline>[];
   technologyOptions: FilterOption<TechnologyTag>[];
+  categoryOptions: AsvsCategory[];
 };
 
 export function FilterBar({
   filters,
   onFilterChange,
-  selectionMode,
-  onSelectionModeChange,
   workItemId,
   onWorkItemIdChange,
   selectionCount,
   onClearSelection,
   disciplineOptions,
-  technologyOptions
+  technologyOptions,
+  categoryOptions
 }: FilterBarProps) {
   return (
     <Card className="shadow-sm">
       <CardHeader className="pb-2">
         <CardTitle className="text-base">Filter checklist</CardTitle>
         <CardDescription>
-          Narrow ASVS controls by level, platform, discipline, technology, or selection mode.
+          Narrow ASVS controls by level, platform, discipline, technology, and specific ASVS categories.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div className="space-y-2">
             <Label htmlFor="filter-level">ASVS level</Label>
             <Select
@@ -161,23 +161,30 @@ export function FilterBar({
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="filter-selection-mode">Selection mode</Label>
-            <Select
-              value={selectionMode}
-              onValueChange={(value) =>
-                onSelectionModeChange(value as SelectionMode)
-              }
-            >
-              <SelectTrigger id="filter-selection-mode">
-                <SelectValue placeholder="Choose mode" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="single">Single select</SelectItem>
-                <SelectItem value="multi">Multi select</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="block text-sm font-medium">ASVS categories</Label>
+          <p className="text-xs text-muted-foreground">
+            Select one or more categories to focus the checklist on specific control families.
+          </p>
+          <ToggleGroup
+            type="multiple"
+            value={filters.categories}
+            onValueChange={(value) => onFilterChange("categories", value)}
+            className="flex flex-wrap gap-2"
+          >
+            {categoryOptions.map((category) => (
+              <ToggleGroupItem
+                key={category.shortcode}
+                value={category.shortcode}
+                title={category.name}
+                className="flex-1 basis-[calc(33%-0.5rem)] text-xs sm:basis-[calc(20%-0.5rem)]"
+              >
+                <span className="font-mono">{category.shortcode}</span>
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">

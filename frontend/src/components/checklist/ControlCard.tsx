@@ -15,12 +15,10 @@ import {
   getTechnologyLabel
 } from "../../lib/developerOptions";
 import { cn } from "../../lib/utils";
-import type { SelectionMode } from "../../hooks/useChecklist";
 
 type ControlCardProps = {
   control: ChecklistControl;
   selected: boolean;
-  selectionMode: SelectionMode;
   onSelect: () => void;
   onLink: () => void;
   linking: boolean;
@@ -31,7 +29,6 @@ type ControlCardProps = {
 export function ControlCard({
   control,
   selected,
-  selectionMode,
   onSelect,
   onLink,
   linking,
@@ -115,12 +112,6 @@ export function ControlCard({
               {control.applicationTypes.join(", ")}
             </span>
           </div>
-          <div>
-            Selection mode:{" "}
-            <span className="font-medium text-foreground capitalize">
-              {selectionMode === "single" ? "Single" : "Multiple"}
-            </span>
-          </div>
         </div>
 
         <div className="mt-auto flex justify-end">
@@ -147,4 +138,3 @@ export function ControlCard({
     </Card>
   );
 }
-

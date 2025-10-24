@@ -26,14 +26,16 @@ const INITIAL_FILTERS = {
   level: "L2" as AsvsLevel,
   applicationType: "web" as ApplicationType,
   discipline: "all" as ChecklistFilters["discipline"],
-  technology: "all" as ChecklistFilters["technology"]
+  technology: "all" as ChecklistFilters["technology"],
+  categories: []
 };
 
 type FilterAction =
   | { type: "setLevel"; value: AsvsLevel }
   | { type: "setApplicationType"; value: ApplicationType }
   | { type: "setDiscipline"; value: ChecklistFilters["discipline"] }
-  | { type: "setTechnology"; value: ChecklistFilters["technology"] };
+  | { type: "setTechnology"; value: ChecklistFilters["technology"] }
+  | { type: "setCategories"; value: string[] };
 
 const ROLE_DEFAULT_DISCIPLINE: Partial<
   Record<UserRole, DeveloperDiscipline>
@@ -50,9 +52,8 @@ export type ChecklistFilters = {
   applicationType: ApplicationType;
   discipline: DeveloperDiscipline | "all";
   technology: TechnologyTag | "all";
+  categories: string[];
 };
-
-export type SelectionMode = "single" | "multi";
 
 function filtersReducer(
   state: ChecklistFilters,
@@ -83,12 +84,13 @@ function filtersReducer(
       return {
         ...state,
         discipline: action.value,
-        technology: nextTechnology
+        technology: nextTechnology,
+        categories: []
       };
     }
     case "setTechnology": {
       if (action.value === "all") {
-        return { ...state, technology: "all" };
+        return { ...state, technology: "all", categories: [] };
       }
 
       const allowedDisciplines = getDisciplinesForTechnology(action.value);
@@ -101,9 +103,15 @@ function filtersReducer(
       return {
         ...state,
         technology: action.value,
-        discipline: nextDiscipline
+        discipline: nextDiscipline,
+        categories: []
       };
     }
+    case "setCategories":
+      return {
+        ...state,
+        categories: (action.value ?? []).map((category) => category.toUpperCase())
+      };
     default:
       return state;
   }
@@ -111,8 +119,6 @@ function filtersReducer(
 
 export function useChecklist(role: UserRole | undefined) {
   const [filters, dispatch] = useReducer(filtersReducer, INITIAL_FILTERS);
-  const [selectionMode, setSelectionMode] =
-    useState<SelectionMode>("multi");
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(
     () => new Set<string>()
   );
@@ -162,7 +168,8 @@ export function useChecklist(role: UserRole | undefined) {
       filters.level,
       filters.applicationType,
       filters.discipline,
-      filters.technology
+      filters.technology,
+      filters.categories
     ],
     queryFn: ({ signal }) =>
       requestChecklist(
@@ -171,7 +178,8 @@ export function useChecklist(role: UserRole | undefined) {
           applicationType: filters.applicationType,
           role: role ?? "developer",
           discipline: filters.discipline === "all" ? null : filters.discipline,
-          technology: filters.technology === "all" ? null : filters.technology
+          technology: filters.technology === "all" ? null : filters.technology,
+          categories: filters.categories.length ? filters.categories : null
         },
         signal
       ) as Promise<ChecklistResponse>,
@@ -186,32 +194,12 @@ export function useChecklist(role: UserRole | undefined) {
     filters.level,
     filters.applicationType,
     filters.discipline,
-    filters.technology
+    filters.technology,
+    filters.categories
   ]);
 
-  useEffect(() => {
-    if (selectionMode === "single") {
-      setSelectedTaskIds((previous) => {
-        if (previous.size <= 1) {
-          return previous;
-        }
-
-        const iterator = previous.values().next();
-        const firstSelected = iterator.done ? undefined : iterator.value;
-        const next = new Set<string>();
-        if (firstSelected) {
-          next.add(firstSelected);
-        }
-        return next;
-      });
-    }
-  }, [selectionMode]);
-
   const setFilter = useCallback(
-    <K extends keyof ChecklistFilters>(
-      key: K,
-      value: ChecklistFilters[K]
-    ) => {
+    (key: keyof ChecklistFilters, value: ChecklistFilters[keyof ChecklistFilters]) => {
       switch (key) {
         case "level":
           dispatch({ type: "setLevel", value: value as AsvsLevel });
@@ -234,6 +222,12 @@ export function useChecklist(role: UserRole | undefined) {
             value: value as ChecklistFilters["technology"]
           });
           break;
+        case "categories":
+          dispatch({
+            type: "setCategories",
+            value: (value as string[]) ?? []
+          });
+          break;
         default:
           break;
       }
@@ -241,31 +235,17 @@ export function useChecklist(role: UserRole | undefined) {
     []
   );
 
-  const toggleSelection = useCallback(
-    (taskId: string) => {
-      setSelectedTaskIds((previous) => {
-        const next = new Set(previous);
-
-        if (selectionMode === "single") {
-          if (next.has(taskId) && next.size === 1) {
-            next.clear();
-          } else {
-            next.clear();
-            next.add(taskId);
-          }
-          return next;
-        }
-
-        if (next.has(taskId)) {
-          next.delete(taskId);
-        } else {
-          next.add(taskId);
-        }
-        return next;
-      });
-    },
-    [selectionMode]
-  );
+  const toggleSelection = useCallback((taskId: string) => {
+    setSelectedTaskIds((previous) => {
+      const next = new Set(previous);
+      if (next.has(taskId)) {
+        next.delete(taskId);
+      } else {
+        next.add(taskId);
+      }
+      return next;
+    });
+  }, []);
 
   const clearSelection = useCallback(() => {
     setSelectedTaskIds(new Set<string>());
@@ -276,8 +256,6 @@ export function useChecklist(role: UserRole | undefined) {
     setFilter,
     disciplineOptions,
     technologyOptions,
-    selectionMode,
-    setSelectionMode,
     selectedTaskIds,
     toggleSelection,
     clearSelection,

@@ -13,6 +13,7 @@ export type ChecklistRequest = {
   role: UserRole;
   technology?: TechnologyTag | null;
   discipline?: DeveloperDiscipline | null;
+  categories?: string[] | null;
 };
 
 export type ChecklistControl = {
@@ -41,6 +42,12 @@ export type ChecklistResponse = {
     resultCount: number;
   };
   tasks: ChecklistControl[];
+};
+
+export type AsvsCategory = {
+  shortcode: string;
+  name: string;
+  ordinal: number;
 };
 
 export type TechnologyTag =
@@ -200,4 +207,14 @@ export async function saveQuestionnaireResponse({
   }
 
   return (await response.json()) as QuestionnaireAnswersResponse;
+}
+
+export async function fetchChecklistCategories() {
+  const response = await fetch(`${API_BASE_URL}/checklists/categories`);
+
+  if (!response.ok) {
+    throw new Error("Failed to load ASVS categories");
+  }
+
+  return (await response.json()) as { categories: AsvsCategory[] };
 }

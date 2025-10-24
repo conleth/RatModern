@@ -79,6 +79,12 @@ export type FlattenedAsvsControl = {
   technologies: TechnologyTag[];
 };
 
+export type AsvsCategory = {
+  shortcode: string;
+  name: string;
+  ordinal: number;
+};
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DATA_PATH = path.join(__dirname, "../data/asvs-5.0.0-en.json");
@@ -348,6 +354,19 @@ const controlsById = new Map(
   flattenedControls.map((control) => [control.id, control])
 );
 
+const categoryMap = new Map<string, AsvsCategory>();
+rawDocument.Requirements.forEach((requirement) => {
+  categoryMap.set(requirement.Shortcode, {
+    shortcode: requirement.Shortcode,
+    name: requirement.Name,
+    ordinal: requirement.Ordinal
+  });
+});
+
+export const ASVS_CATEGORIES: AsvsCategory[] = Array.from(categoryMap.values()).sort(
+  (a, b) => a.ordinal - b.ordinal
+);
+
 function levelToNumber(level: AsvsLevel) {
   switch (level) {
     case "L1":
@@ -371,9 +390,13 @@ export function getAsvsChecklist(
   options?: {
     discipline?: DeveloperDiscipline;
     technology?: TechnologyTag;
+    categories?: string[];
   }
 ): FlattenedAsvsControl[] {
   const maximumLevel = levelToNumber(level);
+  const categoriesFilter = options?.categories?.length
+    ? new Set(options.categories.map((category) => category.toUpperCase()))
+    : undefined;
 
   return flattenedControls
     .filter((control) => {
@@ -386,6 +409,10 @@ export function getAsvsChecklist(
       }
 
       if (!control.applicationTypes.includes(applicationType)) {
+        return false;
+      }
+
+       if (categoriesFilter && !categoriesFilter.has(control.categoryShortcode.toUpperCase())) {
         return false;
       }
 

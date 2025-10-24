@@ -28,6 +28,7 @@ Extend the UI by generating shadcn components (`npx shadcn-ui add ...`) or by ad
 
 ### Checklist experience highlights
 
-- Dynamic filtering by ASVS level, application type, discipline, technology, and selection mode.
+- Dynamic filtering by ASVS level, application type, discipline, technology, and specific ASVS categories.
 - Multi-select grid cards with ticketing modal for creating/linking work items.
 - JSON export for checked controls to track requirements alongside source code.
+- Questionnaire-driven recommendations that pre-populate checklist filters.

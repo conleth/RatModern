@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 
 import { AppLayout } from "../components/layout/AppLayout";
 import { Button } from "../components/ui/button";
@@ -11,7 +12,7 @@ import {
   CardContent
 } from "../components/ui/card";
 import { useAuth } from "../lib/auth";
-import { linkTaskToRally } from "../lib/api";
+import { linkTaskToRally, fetchChecklistCategories } from "../lib/api";
 import { ROLE_LABELS } from "../lib/roles";
 import { getDisciplineLabel, getTechnologyLabel } from "../lib/developerOptions";
 import { FilterBar } from "../components/checklist/FilterBar";
@@ -29,6 +30,7 @@ type RecommendedFiltersPayload = {
   applicationType: ApplicationType;
   discipline: ChecklistFilters["discipline"];
   technology: ChecklistFilters["technology"];
+  categories: string[];
 };
 
 export function ChecklistPage() {
@@ -38,15 +40,11 @@ export function ChecklistPage() {
   const [linkingTaskId, setLinkingTaskId] = useState<string | null>(null);
   const [workItemId, setWorkItemId] = useState("");
   const [ticketModalOpen, setTicketModalOpen] = useState(false);
-  const [ticketModalProcessing, setTicketModalProcessing] = useState(false);
-  const [ticketModalError, setTicketModalError] = useState<string | null>(null);
   const hasRallyAccess = Boolean(rallyAccessToken);
 
   const {
     filters,
     setFilter,
-    selectionMode,
-    setSelectionMode,
     selectedTaskIds,
     toggleSelection,
     clearSelection,
@@ -75,6 +73,15 @@ export function ChecklistPage() {
     APPLICATION_TYPES.find((type) => type.value === filters.applicationType)?.label ??
     filters.applicationType.toUpperCase();
 
+  const { data: categoryData } = useQuery({
+    queryKey: ["checklist", "categories"],
+    queryFn: fetchChecklistCategories
+  });
+  const categoryOptions = useMemo(
+    () => (categoryData?.categories ?? []).slice().sort((a, b) => a.ordinal - b.ordinal),
+    [categoryData]
+  );
+
   useEffect(() => {
     const recommended = (location.state as { recommendedFilters?: RecommendedFiltersPayload } | null)?.recommendedFilters;
 
@@ -83,6 +90,7 @@ export function ChecklistPage() {
       setFilter("applicationType", recommended.applicationType);
       setFilter("discipline", recommended.discipline);
       setFilter("technology", recommended.technology);
+      setFilter("categories", recommended.categories ?? []);
       navigate("/checklist", { replace: true, state: null });
     }
   }, [location.state, setFilter, navigate]);
@@ -124,7 +132,6 @@ export function ChecklistPage() {
     const payload = {
       generatedAt: new Date().toISOString(),
       filters,
-      selectionMode,
       role: user.role,
       controls: selectedControls.map((control) => ({
         id: control.id,
@@ -160,7 +167,6 @@ export function ChecklistPage() {
       title: payload.title,
       description: payload.description,
       filters,
-      selectionMode,
       role: user.role,
       controls: selectedControls.map((control) => ({
         id: control.id,
@@ -212,32 +218,6 @@ export function ChecklistPage() {
     );
   };
 
-  const handleTicketModalSubmit = async (
-    mode: "create" | "link",
-    payload: CreateTicketPayload | LinkExistingPayload
-  ) => {
-    setTicketModalProcessing(true);
-    setTicketModalError(null);
-
-    try {
-      if (mode === "create") {
-        await createTicketDocument(payload as CreateTicketPayload);
-      } else {
-        await linkSelectedControls(payload as LinkExistingPayload);
-      }
-      setTicketModalOpen(false);
-      clearSelection();
-    } catch (modalError) {
-      setTicketModalError(
-        modalError instanceof Error
-          ? modalError.message
-          : "Unable to complete ticket action."
-      );
-    } finally {
-      setTicketModalProcessing(false);
-    }
-  };
-
   return (
     <AppLayout
       title="ASVS checklist"
@@ -251,15 +231,14 @@ export function ChecklistPage() {
       <div className="space-y-6">
         <FilterBar
           filters={filters}
-          onFilterChange={setFilter}
-          selectionMode={selectionMode}
-          onSelectionModeChange={setSelectionMode}
+        onFilterChange={setFilter}
           workItemId={workItemId}
           onWorkItemIdChange={setWorkItemId}
           selectionCount={selectedCount}
           onClearSelection={clearSelection}
           disciplineOptions={disciplineOptions}
           technologyOptions={technologyOptions}
+          categoryOptions={categoryOptions}
         />
 
         {selectedCount > 0 && (
@@ -337,7 +316,6 @@ export function ChecklistPage() {
                 key={task.id}
                 control={task}
                 selected={selectedTaskIds.has(task.id)}
-                selectionMode={selectionMode}
                 onSelect={() => toggleSelection(task.id)}
                 onLink={() => void handleLink(task.id)}
                 linking={linkingTaskId === task.id}
@@ -365,14 +343,8 @@ export function ChecklistPage() {
         onOpenChange={setTicketModalOpen}
         selectedControls={selectedControls}
         defaultWorkItemId={workItemId}
-        onCreateTicket={(payload) =>
-          handleTicketModalSubmit("create", payload)
-        }
-        onLinkExisting={(payload) =>
-          handleTicketModalSubmit("link", payload)
-        }
-        isProcessing={ticketModalProcessing}
-        errorMessage={ticketModalError}
+        onCreateTicket={createTicketDocument}
+        onLinkExisting={linkSelectedControls}
         hasRallyAccess={hasRallyAccess}
       />
     </AppLayout>
