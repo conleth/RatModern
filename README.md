@@ -73,7 +73,7 @@ Security notes:
 
 - Shadcn/ui + Tailwind for consistent role-based navigation.
 - React Router manages `Login`, `Dashboard`, and `Checklist` pages.
-- Checklist views pull live OWASP ASVS 5.0 data from the backend, filtered by role, level, and application type.
+- Checklist views pull live OWASP ASVS 5.0 data from the backend, filtered by role, level, application type, developer discipline, and primary technology.
 - The dashboard demonstrates quick actions and minimal state, ready for expansion.
 
 ## Backend overview

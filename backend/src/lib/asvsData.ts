@@ -6,6 +6,28 @@ import { UserRole } from "../types/auth.js";
 
 export type AsvsLevel = "L1" | "L2" | "L3";
 export type ApplicationType = "web" | "mobile" | "api";
+export type DeveloperDiscipline =
+  | "frontend"
+  | "backend"
+  | "mobile"
+  | "fullstack"
+  | "data-analyst"
+  | "devops"
+  | "security-engineer"
+  | "qa-engineer"
+  | "project-manager";
+
+export type TechnologyTag =
+  | "typescript"
+  | "javascript"
+  | "python"
+  | "java"
+  | "csharp"
+  | "go"
+  | "ruby"
+  | "php"
+  | "kotlin"
+  | "swift";
 
 type RawAsvsItem = {
   Shortcode: string;
@@ -53,6 +75,8 @@ export type FlattenedAsvsControl = {
   };
   recommendedRoles: UserRole[];
   applicationTypes: ApplicationType[];
+  disciplines: DeveloperDiscipline[];
+  technologies: TechnologyTag[];
 };
 
 const __filename = fileURLToPath(import.meta.url);
@@ -107,6 +131,178 @@ const SECTION_APPLICATION_MAP: Record<string, ApplicationType[]> = {
   V14: ["web", "mobile", "api"]
 };
 
+const SECTION_DISCIPLINE_MAP: Record<string, DeveloperDiscipline[]> = {
+  V1: [
+    "frontend",
+    "backend",
+    "mobile",
+    "fullstack",
+    "project-manager",
+    "security-engineer"
+  ],
+  V2: ["backend", "fullstack", "security-engineer"],
+  V3: ["backend", "mobile", "security-engineer"],
+  V4: ["backend", "security-engineer"],
+  V5: ["frontend", "backend", "fullstack", "security-engineer", "qa-engineer"],
+  V6: ["backend", "data-analyst", "security-engineer"],
+  V7: ["backend", "devops", "security-engineer"],
+  V8: ["backend", "data-analyst", "security-engineer"],
+  V9: ["backend", "devops", "security-engineer"],
+  V10: ["backend", "mobile", "devops", "security-engineer"],
+  V11: ["frontend", "backend", "project-manager", "fullstack"],
+  V12: ["backend", "devops", "security-engineer"],
+  V13: ["backend", "mobile", "fullstack", "security-engineer"],
+  V14: ["backend", "devops", "project-manager", "security-engineer"]
+};
+
+const SECTION_TECHNOLOGY_MAP: Record<string, TechnologyTag[]> = {
+  V1: [
+    "typescript",
+    "javascript",
+    "python",
+    "java",
+    "csharp",
+    "go",
+    "ruby",
+    "php",
+    "kotlin",
+    "swift"
+  ],
+  V2: [
+    "typescript",
+    "javascript",
+    "python",
+    "java",
+    "csharp",
+    "go",
+    "ruby",
+    "php",
+    "kotlin"
+  ],
+  V3: [
+    "typescript",
+    "javascript",
+    "python",
+    "java",
+    "csharp",
+    "go",
+    "ruby",
+    "php",
+    "kotlin"
+  ],
+  V4: [
+    "typescript",
+    "javascript",
+    "python",
+    "java",
+    "csharp",
+    "go",
+    "ruby",
+    "php",
+    "kotlin"
+  ],
+  V5: [
+    "typescript",
+    "javascript",
+    "python",
+    "java",
+    "csharp",
+    "go",
+    "ruby",
+    "php"
+  ],
+  V6: [
+    "python",
+    "java",
+    "csharp",
+    "go",
+    "ruby",
+    "php",
+    "kotlin"
+  ],
+  V7: [
+    "python",
+    "java",
+    "csharp",
+    "go",
+    "ruby",
+    "php",
+    "kotlin",
+    "swift"
+  ],
+  V8: [
+    "python",
+    "java",
+    "csharp",
+    "go",
+    "ruby",
+    "php",
+    "kotlin"
+  ],
+  V9: [
+    "typescript",
+    "javascript",
+    "python",
+    "java",
+    "csharp",
+    "go",
+    "ruby",
+    "php"
+  ],
+  V10: [
+    "typescript",
+    "javascript",
+    "python",
+    "java",
+    "csharp",
+    "go",
+    "kotlin",
+    "swift"
+  ],
+  V11: [
+    "typescript",
+    "javascript",
+    "python",
+    "java",
+    "csharp",
+    "go",
+    "ruby",
+    "php"
+  ],
+  V12: [
+    "python",
+    "java",
+    "csharp",
+    "go",
+    "ruby",
+    "php",
+    "kotlin"
+  ],
+  V13: [
+    "typescript",
+    "javascript",
+    "python",
+    "java",
+    "csharp",
+    "go",
+    "ruby",
+    "php",
+    "kotlin"
+  ],
+  V14: [
+    "typescript",
+    "javascript",
+    "python",
+    "java",
+    "csharp",
+    "go",
+    "ruby",
+    "php",
+    "kotlin",
+    "swift"
+  ]
+};
+
 const flattenedControls: FlattenedAsvsControl[] = rawDocument.Requirements.flatMap(
   (requirement) => {
     const categoryRoles =
@@ -117,6 +313,12 @@ const flattenedControls: FlattenedAsvsControl[] = rawDocument.Requirements.flatM
     return requirement.Items.flatMap((section) => {
       return section.Items.map((item) => {
         const level = Number.parseInt(item.L, 10);
+        const sectionDisciplines =
+          SECTION_DISCIPLINE_MAP[requirement.Shortcode] ??
+          SECTION_DISCIPLINE_MAP.V1;
+        const sectionTechnologies =
+          SECTION_TECHNOLOGY_MAP[requirement.Shortcode] ??
+          SECTION_TECHNOLOGY_MAP.V1;
 
         return {
           id: item.Shortcode,
@@ -133,7 +335,9 @@ const flattenedControls: FlattenedAsvsControl[] = rawDocument.Requirements.flatM
             item: item.Ordinal
           },
           recommendedRoles: categoryRoles,
-          applicationTypes: categoryApplications
+          applicationTypes: categoryApplications,
+          disciplines: sectionDisciplines,
+          technologies: sectionTechnologies
         } satisfies FlattenedAsvsControl;
       });
     });
@@ -163,7 +367,11 @@ export function getAsvsControlById(id: string) {
 export function getAsvsChecklist(
   level: AsvsLevel,
   applicationType: ApplicationType,
-  role: UserRole
+  role: UserRole,
+  options?: {
+    discipline?: DeveloperDiscipline;
+    technology?: TechnologyTag;
+  }
 ): FlattenedAsvsControl[] {
   const maximumLevel = levelToNumber(level);
 
@@ -179,6 +387,18 @@ export function getAsvsChecklist(
 
       if (!control.applicationTypes.includes(applicationType)) {
         return false;
+      }
+
+      if (options?.discipline) {
+        if (!control.disciplines.includes(options.discipline)) {
+          return false;
+        }
+      }
+
+      if (options?.technology) {
+        if (!control.technologies.includes(options.technology)) {
+          return false;
+        }
       }
 
       return true;
@@ -201,3 +421,28 @@ export const asvsMetadata = {
   description: rawDocument.Description,
   totalControls: flattenedControls.length
 };
+
+export const TECHNOLOGY_TAGS: TechnologyTag[] = [
+  "typescript",
+  "javascript",
+  "python",
+  "java",
+  "csharp",
+  "go",
+  "ruby",
+  "php",
+  "kotlin",
+  "swift"
+];
+
+export const DEVELOPER_DISCIPLINES: DeveloperDiscipline[] = [
+  "frontend",
+  "backend",
+  "mobile",
+  "fullstack",
+  "data-analyst",
+  "devops",
+  "security-engineer",
+  "qa-engineer",
+  "project-manager"
+];

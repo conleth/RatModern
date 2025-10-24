@@ -7,6 +7,8 @@ export type ChecklistRequest = {
   level: AsvsLevel;
   applicationType: ApplicationType;
   role: UserRole;
+  technology?: TechnologyTag | null;
+  discipline?: DeveloperDiscipline | null;
 };
 
 export type ChecklistControl = {
@@ -20,6 +22,8 @@ export type ChecklistControl = {
   description: string;
   recommendedRoles: UserRole[];
   applicationTypes: ApplicationType[];
+  disciplines: DeveloperDiscipline[];
+  technologies: TechnologyTag[];
 };
 
 export type ChecklistResponse = {
@@ -34,6 +38,29 @@ export type ChecklistResponse = {
   };
   tasks: ChecklistControl[];
 };
+
+export type TechnologyTag =
+  | "typescript"
+  | "javascript"
+  | "python"
+  | "java"
+  | "csharp"
+  | "go"
+  | "ruby"
+  | "php"
+  | "kotlin"
+  | "swift";
+
+export type DeveloperDiscipline =
+  | "frontend"
+  | "backend"
+  | "mobile"
+  | "fullstack"
+  | "data-analyst"
+  | "devops"
+  | "security-engineer"
+  | "qa-engineer"
+  | "project-manager";
 
 export async function authenticateWithRally(code: string) {
   const response = await fetch(`${API_BASE_URL}/oauth/rally/token`, {

@@ -28,35 +28,59 @@ import {
   ApplicationType
 } from "../lib/asvs";
 import { useAuth } from "../lib/auth";
-import { linkTaskToRally, requestChecklist } from "../lib/api";
+import {
+  linkTaskToRally,
+  requestChecklist,
+  DeveloperDiscipline,
+  TechnologyTag
+} from "../lib/api";
 import { ROLE_LABELS } from "../lib/roles";
+import {
+  DISCIPLINE_OPTIONS,
+  TECHNOLOGY_OPTIONS,
+  getDisciplineLabel,
+  getTechnologyLabel
+} from "../lib/developerOptions";
 
 type ChecklistFilters = {
   level: AsvsLevel;
   applicationType: ApplicationType;
+  discipline: DeveloperDiscipline | "all";
+  technology: TechnologyTag | "all";
 };
 
 export function ChecklistPage() {
   const { user, rallyAccessToken } = useAuth();
   const [filters, setFilters] = useState<ChecklistFilters>({
     level: "L2",
-    applicationType: "web"
+    applicationType: "web",
+    discipline: "all",
+    technology: "all"
   });
   const [linkingTaskId, setLinkingTaskId] = useState<string | null>(null);
   const [workItemId, setWorkItemId] = useState("");
   const hasRallyAccess = Boolean(rallyAccessToken);
 
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
-    queryKey: ["checklist", user?.role, filters.level, filters.applicationType],
-    queryFn: ({ signal }) =>
-      requestChecklist(
-        {
-          level: filters.level,
-          applicationType: filters.applicationType,
-          role: user!.role
-        },
-        signal
-      ),
+    queryKey: [
+      "checklist",
+      user?.role,
+      filters.level,
+      filters.applicationType,
+      filters.discipline,
+      filters.technology
+    ],
+    queryFn: ({ signal }) => {
+      const requestPayload = {
+        level: filters.level,
+        applicationType: filters.applicationType,
+        role: user!.role,
+        discipline: filters.discipline === "all" ? null : filters.discipline,
+        technology: filters.technology === "all" ? null : filters.technology
+      };
+
+      return requestChecklist(requestPayload, signal);
+    },
     enabled: Boolean(user),
     staleTime: 5 * 60 * 1000
   });
@@ -83,7 +107,9 @@ export function ChecklistPage() {
         metadata: {
           level: filters.level,
           applicationType: filters.applicationType,
-          role: user.role
+          role: user.role,
+          discipline: filters.discipline === "all" ? undefined : filters.discipline,
+          technology: filters.technology === "all" ? undefined : filters.technology
         }
       });
       setWorkItemId("");
@@ -161,6 +187,56 @@ export function ChecklistPage() {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="discipline">Discipline focus</Label>
+              <Select
+                value={filters.discipline}
+                onValueChange={(value) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    discipline: value as ChecklistFilters["discipline"]
+                  }))
+                }
+              >
+                <SelectTrigger id="discipline">
+                  <SelectValue placeholder="Select discipline" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All disciplines</SelectItem>
+                  {DISCIPLINE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="technology">Primary technology</Label>
+              <Select
+                value={filters.technology}
+                onValueChange={(value) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    technology: value as ChecklistFilters["technology"]
+                  }))
+                }
+              >
+                <SelectTrigger id="technology">
+                  <SelectValue placeholder="Select technology" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All technologies</SelectItem>
+                  {TECHNOLOGY_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="rally-work-item">Rally work item ID</Label>
               <Input
                 id="rally-work-item"
@@ -187,6 +263,8 @@ export function ChecklistPage() {
                   {ASVS_LEVELS.find((level) => level.value === filters.level)?.label ?? filters.level}{" "}
                   • {APPLICATION_TYPES.find((type) => type.value === filters.applicationType)?.label ?? filters.applicationType}{" "}
                   • {ROLE_LABELS[user.role]}
+                  {filters.discipline !== "all" && <> • {getDisciplineLabel(filters.discipline)}</>}
+                  {filters.technology !== "all" && <> • {getTechnologyLabel(filters.technology)}</>}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -264,6 +342,14 @@ export function ChecklistPage() {
                     Application focus:{" "}
                     <span className="font-medium text-foreground uppercase">
                       {task.applicationTypes.join(", ")}
+                    </span>
+                  </div>
+                  <div>
+                    Technologies:{" "}
+                    <span className="font-medium text-foreground">
+                      {task.technologies
+                        .map((tech) => getTechnologyLabel(tech))
+                        .join(", ")}
                     </span>
                   </div>
                 </div>

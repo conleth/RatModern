@@ -5,6 +5,8 @@ import {
   getAsvsChecklist,
   AsvsLevel,
   ApplicationType,
+  DeveloperDiscipline,
+  TechnologyTag,
   asvsMetadata
 } from "../lib/asvsData.js";
 import { UserRole } from "../types/auth.js";
@@ -18,7 +20,36 @@ const checklistRequestSchema = z.object({
     "tester",
     "business-analyst",
     "executive"
-  ])
+  ]),
+  technology: z
+    .enum([
+      "typescript",
+      "javascript",
+      "python",
+      "java",
+      "csharp",
+      "go",
+      "ruby",
+      "php",
+      "kotlin",
+      "swift"
+    ])
+    .optional()
+    .nullable(),
+  discipline: z
+    .enum([
+      "frontend",
+      "backend",
+      "mobile",
+      "fullstack",
+      "data-analyst",
+      "devops",
+      "security-engineer",
+      "qa-engineer",
+      "project-manager"
+    ])
+    .optional()
+    .nullable()
 });
 
 export function registerChecklistRoutes(app: FastifyInstance) {
@@ -29,18 +60,30 @@ export function registerChecklistRoutes(app: FastifyInstance) {
       return reply.badRequest("Invalid checklist request payload");
     }
 
-    const { level, applicationType, role } = parseResult.data as {
-      level: AsvsLevel;
-      applicationType: ApplicationType;
-      role: UserRole;
-    };
+    const { level, applicationType, role, technology, discipline } =
+      parseResult.data as {
+        level: AsvsLevel;
+        applicationType: ApplicationType;
+        role: UserRole;
+        technology?: TechnologyTag | null;
+        discipline?: DeveloperDiscipline | null;
+      };
 
-    const tasks = getAsvsChecklist(level, applicationType, role);
+    const tasks = getAsvsChecklist(level, applicationType, role, {
+      technology: technology ?? undefined,
+      discipline: discipline ?? undefined
+    });
 
     return {
       metadata: {
         ...asvsMetadata,
-        filters: { level, applicationType, role },
+        filters: {
+          level,
+          applicationType,
+          role,
+          technology: technology ?? null,
+          discipline: discipline ?? null
+        },
         resultCount: tasks.length
       },
       tasks: tasks.map((task) => ({
@@ -53,7 +96,9 @@ export function registerChecklistRoutes(app: FastifyInstance) {
         sectionShortcode: task.sectionShortcode,
         description: task.description,
         recommendedRoles: task.recommendedRoles,
-        applicationTypes: task.applicationTypes
+        applicationTypes: task.applicationTypes,
+        disciplines: task.disciplines,
+        technologies: task.technologies
       }))
     };
   });

@@ -35,3 +35,9 @@ See the project-wide `.env.example` for defaults. At minimum set:
 3. Add routes or controllers that invoke the adapter's methods.
 
 This approach keeps OAuth exchange, work-item CRUD, and mapping logic outside of route handlers so they can be replaced without touching HTTP wiring.
+
+## ASVS data model
+
+- Source file: `src/data/asvs-5.0.0-en.json` (synced from OWASP/ASVS GitHub).
+- Loader: `src/lib/asvsData.ts` flattens requirements, maps recommended roles, disciplines, technologies, and application types.
+- Checklist API (`POST /checklists`) accepts optional `technology` (top languages) and `discipline` filters to narrow the returned controls for specific developer personas.
