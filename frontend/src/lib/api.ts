@@ -68,6 +68,7 @@ export type DeveloperDiscipline =
   | "mobile"
   | "fullstack"
   | "data-analyst"
+  | "data-scientist"
   | "devops"
   | "security-engineer"
   | "qa-engineer"

@@ -8,6 +8,7 @@ const roleSchema = z.enum([
   "developer",
   "tester",
   "business-analyst",
+  "data-scientist",
   "executive"
 ]);
 
@@ -35,4 +36,3 @@ export function registerAuthRoutes(app: FastifyInstance) {
     };
   });
 }
-

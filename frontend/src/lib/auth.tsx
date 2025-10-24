@@ -5,6 +5,7 @@ export type UserRole =
   | "developer"
   | "tester"
   | "business-analyst"
+  | "data-scientist"
   | "executive";
 
 export type AuthenticatedUser = {

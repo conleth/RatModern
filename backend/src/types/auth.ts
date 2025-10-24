@@ -3,6 +3,7 @@ export type UserRole =
   | "developer"
   | "tester"
   | "business-analyst"
+  | "data-scientist"
   | "executive";
 
 export type AuthenticatedUser = {
@@ -12,4 +13,3 @@ export type AuthenticatedUser = {
   role: UserRole;
   rallyRefreshToken?: string;
 };
-

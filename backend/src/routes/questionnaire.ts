@@ -21,6 +21,7 @@ const saveSchema = z.object({
     "developer",
     "tester",
     "business-analyst",
+    "data-scientist",
     "executive"
   ]),
   answers: answerSchema
@@ -98,4 +99,3 @@ export function registerQuestionnaireRoutes(app: FastifyInstance) {
     return record;
   });
 }
-

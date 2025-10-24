@@ -5,6 +5,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   developer: "Developer",
   tester: "QA Tester",
   "business-analyst": "Business Analyst",
+  "data-scientist": "Data Scientist",
   executive: "Executive Stakeholder"
 };
 
@@ -17,6 +18,8 @@ export const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
     "Plan verification activities and coverage for prioritized ASVS requirements.",
   "business-analyst":
     "Understand scope, risk, and delivery expectations for your release.",
+  "data-scientist":
+    "Protect analytics pipelines, data products, and ML experiments with the right controls.",
   executive:
     "View compliance readiness and program status across initiatives."
 };
@@ -26,6 +29,6 @@ export const ROLE_ORDER: UserRole[] = [
   "developer",
   "tester",
   "business-analyst",
+  "data-scientist",
   "executive"
 ];
-

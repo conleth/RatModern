@@ -12,6 +12,7 @@ export type DeveloperDiscipline =
   | "mobile"
   | "fullstack"
   | "data-analyst"
+  | "data-scientist"
   | "devops"
   | "security-engineer"
   | "qa-engineer"
@@ -98,26 +99,27 @@ const ALL_ROLES: UserRole[] = [
   "developer",
   "tester",
   "business-analyst",
+  "data-scientist",
   "executive"
 ];
 
 const ALL_APPLICATION_TYPES: ApplicationType[] = ["web", "mobile", "api"];
 
 const SECTION_ROLE_MAP: Record<string, UserRole[]> = {
-  V1: ["architect", "developer", "business-analyst", "executive"],
-  V2: ["architect", "developer", "tester"],
-  V3: ["architect", "developer", "tester"],
-  V4: ["architect", "developer", "tester"],
-  V5: ["developer", "tester"],
-  V6: ["developer", "tester"],
-  V7: ["developer", "tester"],
-  V8: ["developer", "tester"],
-  V9: ["developer", "tester"],
-  V10: ["architect", "tester"],
+  V1: ["architect", "developer", "business-analyst", "data-scientist", "executive"],
+  V2: ["architect", "developer", "tester", "data-scientist"],
+  V3: ["architect", "developer", "tester", "data-scientist"],
+  V4: ["architect", "developer", "tester", "data-scientist"],
+  V5: ["developer", "tester", "data-scientist"],
+  V6: ["developer", "tester", "data-scientist"],
+  V7: ["developer", "tester", "data-scientist"],
+  V8: ["developer", "tester", "data-scientist"],
+  V9: ["developer", "tester", "data-scientist"],
+  V10: ["architect", "tester", "data-scientist"],
   V11: ["architect", "tester"],
-  V12: ["architect", "tester"],
-  V13: ["architect", "developer", "tester"],
-  V14: ["architect", "business-analyst", "executive"]
+  V12: ["architect", "tester", "data-scientist"],
+  V13: ["architect", "developer", "tester", "data-scientist"],
+  V14: ["architect", "business-analyst", "executive", "data-scientist"]
 };
 
 const SECTION_APPLICATION_MAP: Record<string, ApplicationType[]> = {
@@ -143,22 +145,24 @@ const SECTION_DISCIPLINE_MAP: Record<string, DeveloperDiscipline[]> = {
     "backend",
     "mobile",
     "fullstack",
+    "data-analyst",
+    "data-scientist",
     "project-manager",
     "security-engineer"
   ],
-  V2: ["backend", "fullstack", "security-engineer"],
-  V3: ["backend", "mobile", "security-engineer"],
-  V4: ["backend", "security-engineer"],
-  V5: ["frontend", "backend", "fullstack", "security-engineer", "qa-engineer"],
-  V6: ["backend", "data-analyst", "security-engineer"],
-  V7: ["backend", "devops", "security-engineer"],
-  V8: ["backend", "data-analyst", "security-engineer"],
-  V9: ["backend", "devops", "security-engineer"],
-  V10: ["backend", "mobile", "devops", "security-engineer"],
-  V11: ["frontend", "backend", "project-manager", "fullstack"],
-  V12: ["backend", "devops", "security-engineer"],
-  V13: ["backend", "mobile", "fullstack", "security-engineer"],
-  V14: ["backend", "devops", "project-manager", "security-engineer"]
+  V2: ["backend", "fullstack", "security-engineer", "data-analyst", "data-scientist"],
+  V3: ["backend", "mobile", "security-engineer", "data-analyst", "data-scientist"],
+  V4: ["backend", "security-engineer", "data-analyst", "data-scientist"],
+  V5: ["frontend", "backend", "fullstack", "security-engineer", "qa-engineer", "data-scientist"],
+  V6: ["backend", "data-analyst", "data-scientist", "security-engineer"],
+  V7: ["backend", "devops", "security-engineer", "data-scientist"],
+  V8: ["backend", "data-analyst", "data-scientist", "security-engineer"],
+  V9: ["backend", "devops", "security-engineer", "data-analyst", "data-scientist"],
+  V10: ["backend", "mobile", "devops", "security-engineer", "data-scientist"],
+  V11: ["frontend", "backend", "project-manager", "fullstack", "data-scientist"],
+  V12: ["backend", "devops", "security-engineer", "data-scientist"],
+  V13: ["backend", "mobile", "fullstack", "security-engineer", "data-scientist"],
+  V14: ["backend", "devops", "project-manager", "security-engineer", "data-analyst", "data-scientist"]
 };
 
 const SECTION_TECHNOLOGY_MAP: Record<string, TechnologyTag[]> = {

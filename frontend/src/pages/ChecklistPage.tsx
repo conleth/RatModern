@@ -99,6 +99,7 @@ export function ChecklistPage() {
   const applicationLabel =
     APPLICATION_TYPES.find((type) => type.value === filters.applicationType)?.label ??
     filters.applicationType.toUpperCase();
+  const activeDiscipline = filters.discipline !== "all" ? filters.discipline : null;
 
   const { data: categoryData } = useQuery({
     queryKey: ["checklist", "categories"],
@@ -353,6 +354,7 @@ export function ChecklistPage() {
                 linking={linkingTaskId === task.id}
                 hasRallyAccess={hasRallyAccess}
                 workItemProvided={Boolean(workItemId)}
+                activeDiscipline={activeDiscipline}
               />
             ))}
           </div>

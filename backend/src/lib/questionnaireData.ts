@@ -129,6 +129,9 @@ function determineDiscipline(
   if (answers.apiService) {
     return "backend";
   }
+  if (role === "data-scientist") {
+    return "data-analyst";
+  }
   if (role === "developer") {
     return answers.externallyFacing ? "fullstack" : "backend";
   }
@@ -281,7 +284,10 @@ export function generateRecommendations(
   const level = determineLevel(score);
   const applicationType = determineApplicationType(answers);
   const discipline = determineDiscipline(answers, role);
-  const technology = determineTechnology(answers);
+  let technology = determineTechnology(answers);
+  if (technology === "all" && role === "data-scientist") {
+    technology = "python";
+  }
   const notes = collectNotes(answers);
   const recommendedCategories = collectCategories(answers);
 

@@ -46,6 +46,7 @@ const ROLE_DEFAULT_DISCIPLINE: Partial<
   tester: "qa-engineer",
   architect: "security-engineer",
   "business-analyst": "project-manager",
+  "data-scientist": "data-analyst",
   executive: "project-manager"
 };
 

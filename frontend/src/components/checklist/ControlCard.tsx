@@ -8,7 +8,7 @@ import {
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 
-import type { ChecklistControl } from "../../lib/api";
+import type { ChecklistControl, DeveloperDiscipline } from "../../lib/api";
 import { ROLE_LABELS } from "../../lib/roles";
 import {
   getDisciplineLabel,
@@ -24,6 +24,7 @@ type ControlCardProps = {
   linking: boolean;
   hasRallyAccess: boolean;
   workItemProvided: boolean;
+  activeDiscipline: DeveloperDiscipline | null;
 };
 
 export function ControlCard({
@@ -33,8 +34,13 @@ export function ControlCard({
   onLink,
   linking,
   hasRallyAccess,
-  workItemProvided
+  workItemProvided,
+  activeDiscipline
 }: ControlCardProps) {
+  const matchesActiveDiscipline = Boolean(
+    activeDiscipline && control.disciplines.includes(activeDiscipline)
+  );
+
   return (
     <Card
       role="button"
@@ -44,6 +50,8 @@ export function ControlCard({
         "relative flex h-full cursor-pointer flex-col border-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2",
         selected
           ? "border-primary/80 bg-primary/5"
+          : matchesActiveDiscipline
+          ? "border-primary/40 bg-primary/5/60 hover:border-primary/50"
           : "border-border hover:border-primary/40"
       )}
       onClick={onSelect}
@@ -92,11 +100,19 @@ export function ControlCard({
           </div>
           <div>
             Disciplines:{" "}
-            <span className="font-medium text-foreground">
-              {control.disciplines
-                .map((discipline) => getDisciplineLabel(discipline))
-                .join(", ")}
-            </span>
+            <div className="mt-1 flex flex-wrap gap-2">
+              {control.disciplines.map((discipline) => {
+                const isActive = discipline === activeDiscipline;
+                return (
+                  <Badge
+                    key={`${control.id}-${discipline}`}
+                    variant={isActive ? "default" : "outline"}
+                  >
+                    {getDisciplineLabel(discipline)}
+                  </Badge>
+                );
+              })}
+            </div>
           </div>
           <div>
             Technologies:{" "}

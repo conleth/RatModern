@@ -13,6 +13,7 @@ const linkSchema = z.object({
       "developer",
       "tester",
       "business-analyst",
+      "data-scientist",
       "executive"
     ])
     .optional(),

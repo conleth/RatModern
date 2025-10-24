@@ -25,6 +25,7 @@ export const DISCIPLINE_OPTIONS: {
   { value: "mobile", label: "Mobile Developer" },
   { value: "fullstack", label: "Fullstack Developer" },
   { value: "data-analyst", label: "Data Analyst / Engineer" },
+  { value: "data-scientist", label: "Data Scientist / ML Engineer" },
   { value: "devops", label: "DevOps / Platform" },
   { value: "security-engineer", label: "Security Engineer" },
   { value: "qa-engineer", label: "QA / Test Engineer" },
@@ -57,7 +58,7 @@ export function getDisciplineLabel(value: DeveloperDiscipline) {
 const technologyToDisciplines: Record<TechnologyTag, DeveloperDiscipline[]> = {
   typescript: ["frontend", "fullstack"],
   javascript: ["frontend", "fullstack"],
-  python: ["backend", "data-analyst", "fullstack"],
+  python: ["backend", "data-analyst", "data-scientist", "fullstack"],
   java: ["backend", "mobile", "fullstack"],
   csharp: ["backend", "fullstack"],
   go: ["backend", "devops"],
@@ -76,6 +77,7 @@ const disciplineToTechnologies: Record<
   mobile: ["kotlin", "swift", "java", "typescript"],
   fullstack: ["typescript", "javascript", "python", "java", "csharp", "ruby", "php"],
   "data-analyst": ["python"],
+  "data-scientist": ["python", "java"],
   devops: ["go", "python", "java"],
   "security-engineer": [
     "python",
