@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { AppLayout } from "../components/layout/AppLayout";
 import { Button } from "../components/ui/button";
@@ -17,11 +17,19 @@ import { FilterBar } from "../components/checklist/FilterBar";
 import { ControlCard } from "../components/checklist/ControlCard";
 import { useChecklist } from "../hooks/useChecklist";
 import { ASVS_LEVELS, APPLICATION_TYPES } from "../lib/asvs";
+import { TicketModal } from "../components/checklist/TicketModal";
+import type {
+  CreateTicketPayload,
+  LinkExistingPayload
+} from "../components/checklist/TicketModal";
 
 export function ChecklistPage() {
   const { user, rallyAccessToken } = useAuth();
   const [linkingTaskId, setLinkingTaskId] = useState<string | null>(null);
   const [workItemId, setWorkItemId] = useState("");
+  const [ticketModalOpen, setTicketModalOpen] = useState(false);
+  const [ticketModalProcessing, setTicketModalProcessing] = useState(false);
+  const [ticketModalError, setTicketModalError] = useState<string | null>(null);
   const hasRallyAccess = Boolean(rallyAccessToken);
 
   const {
@@ -47,6 +55,10 @@ export function ChecklistPage() {
   const tasks = data?.tasks ?? [];
   const metadata = data?.metadata;
   const selectedCount = selectedTaskIds.size;
+  const selectedControls = useMemo(
+    () => tasks.filter((task) => selectedTaskIds.has(task.id)),
+    [tasks, selectedTaskIds]
+  );
   const levelLabel =
     ASVS_LEVELS.find((level) => level.value === filters.level)?.label ?? filters.level;
   const applicationLabel =
@@ -84,6 +96,126 @@ export function ChecklistPage() {
     }
   };
 
+  const handleDownloadJson = () => {
+    if (selectedControls.length === 0) return;
+
+    const payload = {
+      generatedAt: new Date().toISOString(),
+      filters,
+      selectionMode,
+      role: user.role,
+      controls: selectedControls.map((control) => ({
+        id: control.id,
+        shortcode: control.shortcode,
+        description: control.description,
+        level: control.level,
+        category: control.category,
+        section: control.section,
+        recommendedRoles: control.recommendedRoles,
+        disciplines: control.disciplines,
+        technologies: control.technologies,
+        applicationTypes: control.applicationTypes
+      }))
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json"
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `asvs-requirements-${filters.level}-${Date.now()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const createTicketDocument = async (payload: CreateTicketPayload) => {
+    const ticket = {
+      generatedAt: new Date().toISOString(),
+      ticketType: payload.ticketType,
+      title: payload.title,
+      description: payload.description,
+      filters,
+      selectionMode,
+      role: user.role,
+      controls: selectedControls.map((control) => ({
+        id: control.id,
+        shortcode: control.shortcode,
+        description: control.description,
+        level: control.level,
+        category: control.category,
+        section: control.section,
+        recommendedRoles: control.recommendedRoles,
+        disciplines: control.disciplines,
+        technologies: control.technologies,
+        applicationTypes: control.applicationTypes
+      }))
+    };
+
+    const blob = new Blob([JSON.stringify(ticket, null, 2)], {
+      type: "application/json"
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${payload.ticketType}-${Date.now()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const linkSelectedControls = async (payload: LinkExistingPayload) => {
+    if (!hasRallyAccess || !rallyAccessToken) {
+      throw new Error("Rally integration is disabled.");
+    }
+
+    await Promise.all(
+      selectedControls.map((control) =>
+        linkTaskToRally({
+          taskId: control.id,
+          workItemId: payload.workItemId,
+          accessToken: rallyAccessToken,
+          metadata: {
+            ticketType: payload.ticketType,
+            notes: payload.notes,
+            level: filters.level,
+            applicationType: filters.applicationType,
+            role: user.role
+          }
+        })
+      )
+    );
+  };
+
+  const handleTicketModalSubmit = async (
+    mode: "create" | "link",
+    payload: CreateTicketPayload | LinkExistingPayload
+  ) => {
+    setTicketModalProcessing(true);
+    setTicketModalError(null);
+
+    try {
+      if (mode === "create") {
+        await createTicketDocument(payload as CreateTicketPayload);
+      } else {
+        await linkSelectedControls(payload as LinkExistingPayload);
+      }
+      setTicketModalOpen(false);
+      clearSelection();
+    } catch (modalError) {
+      setTicketModalError(
+        modalError instanceof Error
+          ? modalError.message
+          : "Unable to complete ticket action."
+      );
+    } finally {
+      setTicketModalProcessing(false);
+    }
+  };
+
   return (
     <AppLayout
       title="ASVS checklist"
@@ -107,6 +239,29 @@ export function ChecklistPage() {
           disciplineOptions={disciplineOptions}
           technologyOptions={technologyOptions}
         />
+
+        {selectedCount > 0 && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle className="text-base">
+                  {selectedCount} control{selectedCount === 1 ? "" : "s"} selected
+                </CardTitle>
+                <CardDescription>
+                  Export requirements or send to your ticketing system to schedule remediation work.
+                </CardDescription>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => setTicketModalOpen(true)}>
+                  Send to ticket system
+                </Button>
+                <Button variant="outline" onClick={handleDownloadJson}>
+                  Download JSON
+                </Button>
+              </div>
+            </CardHeader>
+          </Card>
+        )}
 
         <div className="space-y-6">
           {metadata && (
@@ -182,6 +337,22 @@ export function ChecklistPage() {
           )}
         </div>
       </div>
+
+      <TicketModal
+        open={ticketModalOpen}
+        onOpenChange={setTicketModalOpen}
+        selectedControls={selectedControls}
+        defaultWorkItemId={workItemId}
+        onCreateTicket={(payload) =>
+          handleTicketModalSubmit("create", payload)
+        }
+        onLinkExisting={(payload) =>
+          handleTicketModalSubmit("link", payload)
+        }
+        isProcessing={ticketModalProcessing}
+        errorMessage={ticketModalError}
+        hasRallyAccess={hasRallyAccess}
+      />
     </AppLayout>
   );
 }

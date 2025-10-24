@@ -25,3 +25,9 @@ npm run lint     # Lint TypeScript/TSX files
 - `src/styles/globals.css` – Tailwind base styles and shadcn tokens.
 
 Extend the UI by generating shadcn components (`npx shadcn-ui add ...`) or by adding new routes under `src/pages` and wiring them into `App.tsx`.
+
+### Checklist experience highlights
+
+- Dynamic filtering by ASVS level, application type, discipline, technology, and selection mode.
+- Multi-select grid cards with ticketing modal for creating/linking work items.
+- JSON export for checked controls to track requirements alongside source code.

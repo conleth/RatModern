@@ -62,7 +62,12 @@ function filtersReducer(
     case "setLevel":
       return { ...state, level: action.value };
     case "setApplicationType":
-      return { ...state, applicationType: action.value };
+      return {
+        ...state,
+        applicationType: action.value,
+        discipline: "all",
+        technology: "all"
+      };
     case "setDiscipline": {
       if (action.value === "all") {
         return { ...state, discipline: "all" };
@@ -73,7 +78,7 @@ function filtersReducer(
         state.technology !== "all" &&
         allowedTechnologies.includes(state.technology)
           ? state.technology
-          : (allowedTechnologies[0] as ChecklistFilters["technology"]) ?? "all";
+          : "all";
 
       return {
         ...state,
@@ -279,4 +284,3 @@ export function useChecklist(role: UserRole | undefined) {
     ...checklistQuery
   };
 }
-
