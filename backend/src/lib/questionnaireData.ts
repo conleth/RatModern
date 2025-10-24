@@ -59,6 +59,32 @@ export const QUESTIONNAIRE_QUESTIONS: QuestionnaireQuestion[] = [
     tags: ["stack"]
   },
   {
+    id: "hasFrontendUI",
+    text: "Does the application provide a browser-based user interface for end-users?",
+    tags: ["ui", "frontend"]
+  },
+  {
+    id: "implementsAuthentication",
+    text: "Does the application implement authentication or integrate with an identity provider (SSO/IdP)?",
+    tags: ["auth"]
+  },
+  {
+    id: "requiresRoleManagement",
+    text: "Do you need role-based access control or multi-tenant authorization separation?",
+    tags: ["authz"]
+  },
+  {
+    id: "logsSensitiveEvents",
+    text: "Does the application generate audit or security-relevant logs that require protection?",
+    tags: ["logging", "monitoring"]
+  },
+  {
+    id: "multiTenantDeployment",
+    text: "Will the application run in a shared cloud or multi-tenant environment (SaaS)?",
+    helpText: "Shared environments raise expectations around isolation, configuration, and secrets management.",
+    tags: ["deployment"]
+  },
+  {
     id: "mobileClient",
     text: "Does the solution include a native or mobile client?",
     tags: ["platform"]
@@ -94,6 +120,9 @@ function determineDiscipline(
   answers: QuestionnaireAnswers,
   role: UserRole
 ): DeveloperDiscipline {
+  if (answers.hasFrontendUI) {
+    return "frontend";
+  }
   if (answers.mobileClient) {
     return "mobile";
   }
@@ -113,6 +142,9 @@ function determineDiscipline(
 }
 
 function determineTechnology(answers: QuestionnaireAnswers): TechnologyTag | "all" {
+  if (answers.hasFrontendUI) {
+    return "typescript";
+  }
   if (answers.mobileClient) {
     return "kotlin";
   }
@@ -145,6 +177,26 @@ function collectNotes(answers: QuestionnaireAnswers): string[] {
     notes.push("Third-party integrations: capture supply-chain security expectations.");
   }
 
+  if (answers.implementsAuthentication) {
+    notes.push("Authentication in scope: confirm MFA, session management, and credential hygiene.");
+  }
+
+  if (answers.requiresRoleManagement) {
+    notes.push("Complex authorization: catalogue roles, least privilege, and tenant separation rules.");
+  }
+
+  if (answers.logsSensitiveEvents) {
+    notes.push("Security logging present: ensure tamper resistance and monitoring coverage.");
+  }
+
+  if (answers.multiTenantDeployment) {
+    notes.push("Multi-tenant/cloud deployment: document isolation, secrets, and configuration controls.");
+  }
+
+  if (answers.hasFrontendUI) {
+    notes.push("Frontend UI detected: emphasise client-side security, content handling, and session controls.");
+  }
+
   return notes;
 }
 
@@ -159,6 +211,7 @@ function collectCategories(answers: QuestionnaireAnswers): string[] {
 
   if (answers.acceptsUserInput) {
     categories.add("V5");
+    categories.add("V11");
   }
 
   if (answers.usesDatabase) {
@@ -180,6 +233,29 @@ function collectCategories(answers: QuestionnaireAnswers): string[] {
     categories.add("V14");
   }
 
+  if (answers.hasFrontendUI) {
+    categories.add("V1");
+    categories.add("V5");
+    categories.add("V11");
+  }
+
+  if (answers.implementsAuthentication) {
+    categories.add("V2");
+    categories.add("V3");
+  }
+
+  if (answers.requiresRoleManagement) {
+    categories.add("V4");
+  }
+
+  if (answers.logsSensitiveEvents) {
+    categories.add("V10");
+  }
+
+  if (answers.multiTenantDeployment) {
+    categories.add("V14");
+  }
+
   return Array.from(categories);
 }
 
@@ -196,6 +272,11 @@ export function generateRecommendations(
   if (answers.usesDatabase) score += 1;
   if (answers.integratesThirdParty) score += 1;
   if (!answers.modernFramework) score += 1;
+  if (answers.hasFrontendUI) score += 1;
+  if (answers.implementsAuthentication) score += 1;
+  if (answers.requiresRoleManagement) score += 1;
+  if (answers.logsSensitiveEvents) score += 1;
+  if (answers.multiTenantDeployment) score += 2;
 
   const level = determineLevel(score);
   const applicationType = determineApplicationType(answers);
@@ -213,4 +294,3 @@ export function generateRecommendations(
     recommendedCategories
   };
 }
-

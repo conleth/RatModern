@@ -30,7 +30,7 @@ type RecommendedFiltersPayload = {
   applicationType: ApplicationType;
   discipline: ChecklistFilters["discipline"];
   technology: ChecklistFilters["technology"];
-  categories: string[];
+  categories?: string[];
 };
 
 export function ChecklistPage() {
@@ -90,7 +90,9 @@ export function ChecklistPage() {
       setFilter("applicationType", recommended.applicationType);
       setFilter("discipline", recommended.discipline);
       setFilter("technology", recommended.technology);
-      setFilter("categories", recommended.categories ?? []);
+      if (recommended.categories) {
+        setFilter("categories", recommended.categories);
+      }
       navigate("/checklist", { replace: true, state: null });
     }
   }, [location.state, setFilter, navigate]);
@@ -276,6 +278,9 @@ export function ChecklistPage() {
                   {ROLE_LABELS[user.role]}
                   {filters.discipline !== "all" && <> • {getDisciplineLabel(filters.discipline)}</>}
                   {filters.technology !== "all" && <> • {getTechnologyLabel(filters.technology)}</>}
+                  {filters.categories.length > 0 && (
+                    <> • Categories: {filters.categories.join(", ")}</>
+                  )}
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -346,6 +351,7 @@ export function ChecklistPage() {
         onCreateTicket={createTicketDocument}
         onLinkExisting={linkSelectedControls}
         hasRallyAccess={hasRallyAccess}
+        onSuccess={clearSelection}
       />
     </AppLayout>
   );

@@ -26,9 +26,8 @@ type TicketModalProps = {
   defaultWorkItemId?: string;
   onCreateTicket: (payload: CreateTicketPayload) => Promise<void>;
   onLinkExisting: (payload: LinkExistingPayload) => Promise<void>;
-  isProcessing?: boolean;
-  errorMessage?: string | null;
   hasRallyAccess: boolean;
+  onSuccess: () => void;
 };
 
 export type CreateTicketPayload = {
@@ -61,9 +60,8 @@ export function TicketModal({
   defaultWorkItemId,
   onCreateTicket,
   onLinkExisting,
-  isProcessing = false,
-  errorMessage,
-  hasRallyAccess
+  hasRallyAccess,
+  onSuccess
 }: TicketModalProps) {
   const [mode, setMode] = useState<TicketMode>("link");
   const [createTicketType, setCreateTicketType] = useState<TicketType>("story");
@@ -123,6 +121,7 @@ export function TicketModal({
           notes: linkNotes.trim() || undefined
         });
       }
+      onSuccess();
       onOpenChange(false);
     } catch (error) {
       setSubmissionError(
@@ -314,26 +313,26 @@ export function TicketModal({
             </section>
           )}
 
-          {(submissionError || errorMessage) && (
-            <p className="text-sm font-medium text-destructive">
-              {submissionError ?? errorMessage}
-            </p>
-          )}
-        </div>
+            {submissionError && (
+              <p className="text-sm font-medium text-destructive">
+              {submissionError}
+              </p>
+            )}
+          </div>
 
         <DialogFooter>
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            disabled={submitting || isProcessing}
+            disabled={submitting}
           >
             Cancel
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={submitting || isProcessing}
+            disabled={submitting}
           >
-            {submitting || isProcessing ? "Processing..." : "Send"}
+            {submitting ? "Processing..." : "Send"}
           </Button>
         </DialogFooter>
       </DialogContent>

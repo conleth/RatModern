@@ -15,6 +15,7 @@ import {
   SelectValue
 } from "../ui/select";
 import { Button } from "../ui/button";
+import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
 
 import { ASVS_LEVELS, APPLICATION_TYPES } from "../../lib/asvs";
 import type { ChecklistFilters } from "../../hooks/useChecklist";
@@ -23,7 +24,6 @@ import type {
   TechnologyTag,
   AsvsCategory
 } from "../../lib/api";
-import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
 
 type FilterOption<T extends string> = {
   value: T;
