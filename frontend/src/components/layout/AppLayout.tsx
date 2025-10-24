@@ -69,6 +69,16 @@ export function AppLayout({
                     <Link to="/checklist">Checklist</Link>
                   </NavigationMenuLink>
                 </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    asChild
+                    className={cn(navigationMenuTriggerStyle, {
+                      "bg-accent text-accent-foreground": pathname === "/questionnaire"
+                    })}
+                  >
+                    <Link to="/questionnaire">Questionnaire</Link>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
           </div>
@@ -121,4 +131,3 @@ export function AppLayout({
     </div>
   );
 }
-

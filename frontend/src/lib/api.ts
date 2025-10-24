@@ -1,5 +1,9 @@
 import { AuthenticatedUser, UserRole } from "./auth";
 import { ApplicationType, AsvsLevel } from "./asvs";
+import type {
+  QuestionnaireQuestion,
+  QuestionnaireAnswersResponse
+} from "./questionnaire";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000";
 
@@ -148,4 +152,52 @@ export async function linkTaskToRally({
   if (!response.ok) {
     throw new Error("Failed to link task to Rally");
   }
+}
+
+export async function fetchQuestionnaireQuestions() {
+  const response = await fetch(`${API_BASE_URL}/questionnaire/questions`);
+
+  if (!response.ok) {
+    throw new Error("Failed to load questionnaire questions");
+  }
+
+  return (await response.json()) as { questions: QuestionnaireQuestion[] };
+}
+
+export async function fetchQuestionnaireResponse(userId: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/questionnaire?userId=${encodeURIComponent(userId)}`
+  );
+
+  if (response.status === 404) {
+    return undefined;
+  }
+
+  if (!response.ok) {
+    throw new Error("Failed to load questionnaire response");
+  }
+
+  return (await response.json()) as QuestionnaireAnswersResponse;
+}
+
+export async function saveQuestionnaireResponse({
+  userId,
+  role,
+  answers
+}: {
+  userId: string;
+  role: UserRole;
+  answers: Record<string, boolean>;
+}) {
+  const response = await fetch(`${API_BASE_URL}/questionnaire`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId, role, answers })
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to save questionnaire responses");
+  }
+
+  return (await response.json()) as QuestionnaireAnswersResponse;
 }

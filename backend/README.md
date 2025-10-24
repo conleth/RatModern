@@ -26,7 +26,7 @@ See the project-wide `.env.example` for defaults. At minimum set:
 - `src/routes` – Fastify route definitions (checklists, OAuth, ticketing).
 - `src/controllers` – Request handlers / orchestration logic.
 - `src/ticketing` – Adapter interfaces and Rally implementation.
-- `src/lib` – ASVS reference data, filtering rules, and helpers.
+- `src/lib` – ASVS reference data, questionnaire logic, filtering rules, and helpers.
 
 ## Adding a new ticketing adapter
 
@@ -41,3 +41,12 @@ This approach keeps OAuth exchange, work-item CRUD, and mapping logic outside of
 - Source file: `src/data/asvs-5.0.0-en.json` (synced from OWASP/ASVS GitHub).
 - Loader: `src/lib/asvsData.ts` flattens requirements, maps recommended roles, disciplines, technologies, and application types.
 - Checklist API (`POST /checklists`) accepts optional `technology` (top languages) and `discipline` filters to narrow the returned controls for specific developer personas.
+
+## Questionnaire
+
+- Questions defined in `src/lib/questionnaireData.ts` mirror secure design prompts (payments, PII, external surface, etc.).
+- Responses are persisted via the in-memory `QuestionnaireStore` (`src/lib/questionnaireStore.ts`) so it can be swapped with SQLite or another database later.
+- Routes:
+  - `GET /questionnaire/questions` – fetch question definitions.
+  - `GET /questionnaire?userId=...` – fetch saved answers and recommendations.
+  - `POST /questionnaire` – upsert answers, re-compute suggested ASVS level, filters, and focus categories.

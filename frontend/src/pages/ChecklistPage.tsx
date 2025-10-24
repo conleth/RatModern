@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { AppLayout } from "../components/layout/AppLayout";
 import { Button } from "../components/ui/button";
@@ -15,16 +16,25 @@ import { ROLE_LABELS } from "../lib/roles";
 import { getDisciplineLabel, getTechnologyLabel } from "../lib/developerOptions";
 import { FilterBar } from "../components/checklist/FilterBar";
 import { ControlCard } from "../components/checklist/ControlCard";
-import { useChecklist } from "../hooks/useChecklist";
-import { ASVS_LEVELS, APPLICATION_TYPES } from "../lib/asvs";
+import { useChecklist, type ChecklistFilters } from "../hooks/useChecklist";
+import { ASVS_LEVELS, APPLICATION_TYPES, type AsvsLevel, type ApplicationType } from "../lib/asvs";
 import { TicketModal } from "../components/checklist/TicketModal";
 import type {
   CreateTicketPayload,
   LinkExistingPayload
 } from "../components/checklist/TicketModal";
 
+type RecommendedFiltersPayload = {
+  level: AsvsLevel;
+  applicationType: ApplicationType;
+  discipline: ChecklistFilters["discipline"];
+  technology: ChecklistFilters["technology"];
+};
+
 export function ChecklistPage() {
   const { user, rallyAccessToken } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [linkingTaskId, setLinkingTaskId] = useState<string | null>(null);
   const [workItemId, setWorkItemId] = useState("");
   const [ticketModalOpen, setTicketModalOpen] = useState(false);
@@ -64,6 +74,18 @@ export function ChecklistPage() {
   const applicationLabel =
     APPLICATION_TYPES.find((type) => type.value === filters.applicationType)?.label ??
     filters.applicationType.toUpperCase();
+
+  useEffect(() => {
+    const recommended = (location.state as { recommendedFilters?: RecommendedFiltersPayload } | null)?.recommendedFilters;
+
+    if (recommended) {
+      setFilter("level", recommended.level);
+      setFilter("applicationType", recommended.applicationType);
+      setFilter("discipline", recommended.discipline);
+      setFilter("technology", recommended.technology);
+      navigate("/checklist", { replace: true, state: null });
+    }
+  }, [location.state, setFilter, navigate]);
 
   const handleLink = async (taskId: string) => {
     if (!workItemId) {

@@ -4,6 +4,7 @@ import { ProtectedRoute } from "./routes/ProtectedRoute";
 import { ChecklistPage } from "./pages/ChecklistPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
+import { QuestionnairePage } from "./pages/QuestionnairePage";
 
 export default function App() {
   return (
@@ -25,8 +26,15 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/questionnaire"
+        element={
+          <ProtectedRoute>
+            <QuestionnairePage />
+          </ProtectedRoute>
+        }
+      />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 }
-
