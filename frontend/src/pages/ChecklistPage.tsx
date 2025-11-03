@@ -48,6 +48,7 @@ export function ChecklistPage() {
     selectedTaskIds,
     toggleSelection,
     clearSelection,
+    setSelectedTasks,
     disciplineOptions,
     technologyOptions,
     data,
@@ -283,6 +284,34 @@ export function ChecklistPage() {
                 </CardDescription>
               </div>
               <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedTasks(filteredTasks.map((task) => task.id))}
+                >
+                  Select all shown
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const remaining = filteredTasks.map((task) => task.id).filter((id) => !selectedTaskIds.has(id));
+                    setSelectedTasks([...selectedTaskIds.values(), ...remaining]);
+                  }}
+                >
+                  Add shown
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const remaining = filteredTasks
+                      .map((task) => task.id)
+                      .filter((id) => !selectedTaskIds.has(id));
+
+                    setSelectedTasks(remaining);
+                  }}
+                  disabled={selectedCount === 0}
+                >
+                  Deselect shown
+                </Button>
                 <Button onClick={() => setTicketModalOpen(true)}>
                   Send to ticket system
                 </Button>

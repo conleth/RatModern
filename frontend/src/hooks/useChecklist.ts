@@ -263,6 +263,10 @@ export function useChecklist(role: UserRole | undefined) {
     });
   }, []);
 
+  const setSelectedTasks = useCallback((taskIds: string[]) => {
+    setSelectedTaskIds(new Set(taskIds));
+  }, []);
+
   const clearSelection = useCallback(() => {
     setSelectedTaskIds(new Set<string>());
   }, []);
@@ -274,6 +278,7 @@ export function useChecklist(role: UserRole | undefined) {
     technologyOptions,
     selectedTaskIds,
     toggleSelection,
+    setSelectedTasks,
     clearSelection,
     ...checklistQuery
   };
