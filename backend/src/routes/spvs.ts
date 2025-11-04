@@ -26,8 +26,7 @@ const saveSchema = z.object({
 const requirementQuerySchema = z.object({
   search: z.string().optional(),
   levels: z.string().optional(),
-  categories: z.string().optional(),
-  subcategories: z.string().optional()
+  categories: z.string().optional()
 });
 
 function parseLevelFilter(value: string | undefined): SpvsLevel[] | undefined {
@@ -145,17 +144,15 @@ export function registerSpvsRoutes(app: FastifyInstance) {
       };
     }
 
-    const { search, levels, categories, subcategories } = parseResult.data;
+    const { search, levels, categories } = parseResult.data;
 
     const levelFilters = parseLevelFilter(levels);
     const categoryFilters = parseListFilter(categories);
-    const subcategoryFilters = parseListFilter(subcategories);
 
     const requirements = getSpvsRequirements({
       search,
       levels: levelFilters,
-      categories: categoryFilters,
-      subcategories: subcategoryFilters
+      categories: categoryFilters
     });
 
     return {
@@ -164,8 +161,7 @@ export function registerSpvsRoutes(app: FastifyInstance) {
         filters: {
           search: search ?? null,
           levels: levelFilters ?? [],
-          categories: categoryFilters ?? [],
-          subcategories: subcategoryFilters ?? []
+          categories: categoryFilters ?? []
         },
         resultCount: requirements.length
       },

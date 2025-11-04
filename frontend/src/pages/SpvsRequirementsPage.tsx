@@ -11,57 +11,82 @@ import {
   CardTitle
 } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { Badge } from "../components/ui/badge";
-import { Input } from "../components/ui/input";
-import { ToggleGroup, ToggleGroupItem } from "../components/ui/toggle-group";
-import { Separator } from "../components/ui/separator";
 
 import {
   fetchSpvsRequirements,
   fetchSpvsTaxonomy,
+  linkTaskToRally,
   type SpvsLevel,
   type SpvsRequirementsResponse
 } from "../lib/api";
+import { useAuth } from "../lib/auth";
+import { SpvsFilterBar } from "../components/spvs/FilterBar";
+import { SpvsRequirementCard } from "../components/spvs/RequirementCard";
+import {
+  SpvsTicketModal,
+  type CreateTicketPayload,
+  type LinkExistingPayload
+} from "../components/spvs/TicketModal";
 
 type RequirementsLocationState = {
   recommendedFilters?: {
     levels?: SpvsLevel[];
     categories?: string[];
-    subcategories?: string[];
   };
 };
 
-const LEVEL_OPTIONS: { value: SpvsLevel; label: string }[] = [
-  { value: "L1", label: "L1 – Foundational" },
-  { value: "L2", label: "L2 – Standard" },
-  { value: "L3", label: "L3 – Advanced" }
-];
+type SpvsFilters = {
+  search: string;
+  levels: SpvsLevel[];
+  categories: string[];
+};
+
+const DEFAULT_FILTERS: SpvsFilters = {
+  search: "",
+  levels: [],
+  categories: []
+};
 
 export function SpvsRequirementsPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const recommendationState = (location.state as RequirementsLocationState | null) ?? null;
+  const recommendationState =
+    (location.state as RequirementsLocationState | null) ?? null;
 
-  const [search, setSearch] = useState("");
-  const [levels, setLevels] = useState<SpvsLevel[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [subcategories, setSubcategories] = useState<string[]>([]);
+  const { user, rallyAccessToken } = useAuth();
+  const hasRallyAccess = Boolean(rallyAccessToken);
+
+  const [filters, setFilters] = useState<SpvsFilters>(DEFAULT_FILTERS);
+  const [workItemId, setWorkItemId] = useState("");
+  const [selectedRequirementIds, setSelectedRequirementIds] = useState<
+    Set<string>
+  >(new Set());
+  const [ticketModalOpen, setTicketModalOpen] = useState(false);
+  const [linkingRequirementId, setLinkingRequirementId] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     if (recommendationState?.recommendedFilters) {
-      const { levels: recommendedLevels, categories: recommendedCategories, subcategories: recommendedSubcategories } =
+      const { levels: recommendedLevels, categories: recommendedCategories } =
         recommendationState.recommendedFilters;
-      if (recommendedLevels) {
-        setLevels(Array.from(new Set(recommendedLevels)));
-      }
-      if (recommendedCategories) {
-        setCategories(Array.from(new Set(recommendedCategories.map((category) => category.toUpperCase()))));
-      }
-      if (recommendedSubcategories) {
-        setSubcategories(
-          Array.from(new Set(recommendedSubcategories.map((subcategory) => subcategory.toUpperCase())))
-        );
-      }
+
+      setFilters({
+        search: "",
+        levels: recommendedLevels
+          ? Array.from(new Set(recommendedLevels))
+          : [],
+        categories: recommendedCategories
+          ? Array.from(
+              new Set(
+                recommendedCategories.map((category) =>
+                  category.toUpperCase()
+                )
+              )
+            )
+          : []
+      });
+
       navigate("/spvs/requirements", { replace: true, state: null });
     }
   }, [recommendationState, navigate]);
@@ -72,42 +97,84 @@ export function SpvsRequirementsPage() {
   });
 
   const requirementQuery = useQuery({
-    queryKey: ["spvs", "requirements", { search, levels, categories, subcategories }],
+    queryKey: ["spvs", "requirements", filters],
     queryFn: () =>
       fetchSpvsRequirements({
-        search: search.trim() ? search.trim() : undefined,
-        levels: levels.length ? levels : undefined,
-        categories: categories.length ? categories : undefined,
-        subcategories: subcategories.length ? subcategories : undefined
+        search: filters.search.trim() || undefined,
+        levels: filters.levels.length ? filters.levels : undefined,
+        categories: filters.categories.length ? filters.categories : undefined
       })
   });
 
   const taxonomy = taxonomyQuery.data;
-  const requirements = requirementQuery.data as SpvsRequirementsResponse | undefined;
+  const requirements =
+    (requirementQuery.data as SpvsRequirementsResponse | undefined) ?? undefined;
+  const requirementList = requirements?.requirements ?? [];
 
   const categoryOptions = taxonomy?.categories ?? [];
-  const subcategoryOptions = taxonomy?.subcategories ?? [];
 
-  const levelValue = useMemo(() => levels.map((level) => level.toUpperCase()), [levels]);
-  const categoryValue = useMemo(
-    () => categories.map((category) => category.toUpperCase()),
-    [categories]
-  );
-  const subcategoryValue = useMemo(
-    () => subcategories.map((subcategory) => subcategory.toUpperCase()),
-    [subcategories]
+  const selectedRequirements = useMemo(
+    () =>
+      requirementList.filter((requirement) =>
+        selectedRequirementIds.has(requirement.id)
+      ),
+    [requirementList, selectedRequirementIds]
   );
 
-  const handleReset = () => {
-    setSearch("");
-    setLevels([]);
-    setCategories([]);
-    setSubcategories([]);
+  const selectedCount = selectedRequirementIds.size;
+
+  const updateFilters = <K extends keyof SpvsFilters>(
+    key: K,
+    value: SpvsFilters[K]
+  ) => {
+    setFilters((previous) => ({
+      ...previous,
+      [key]: value
+    }));
   };
 
-  const handleExport = () => {
-    const rows = requirements?.requirements ?? [];
-    if (!rows.length) {
+  const toggleSelection = (id: string) => {
+    setSelectedRequirementIds((previous) => {
+      const next = new Set(previous);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const setSelection = (ids: string[]) => {
+    setSelectedRequirementIds(new Set(ids));
+  };
+
+  const clearSelection = () => {
+    setSelectedRequirementIds(new Set());
+  };
+
+  const selectAllShown = () => {
+    setSelection(requirementList.map((requirement) => requirement.id));
+  };
+
+  const addShownToSelection = () => {
+    setSelectedRequirementIds((previous) => {
+      const next = new Set(previous);
+      requirementList.forEach((requirement) => next.add(requirement.id));
+      return next;
+    });
+  };
+
+  const deselectShown = () => {
+    setSelectedRequirementIds((previous) => {
+      const next = new Set(previous);
+      requirementList.forEach((requirement) => next.delete(requirement.id));
+      return next;
+    });
+  };
+
+  const handleExportCsv = () => {
+    if (!requirementList.length) {
       return;
     }
 
@@ -125,7 +192,7 @@ export function SpvsRequirementsPage() {
 
     const csvLines = [header];
 
-    rows.forEach((requirement) => {
+    requirementList.forEach((requirement) => {
       csvLines.push([
         requirement.id,
         `${requirement.categoryId} ${requirement.categoryName}`.trim(),
@@ -144,7 +211,11 @@ export function SpvsRequirementsPage() {
         line
           .map((value) => {
             const sanitized = value ?? "";
-            if (sanitized.includes(",") || sanitized.includes("\"") || sanitized.includes("\n")) {
+            if (
+              sanitized.includes(",") ||
+              sanitized.includes('"') ||
+              sanitized.includes("\n")
+            ) {
               return `"${sanitized.replace(/"/g, '""')}"`;
             }
             return sanitized;
@@ -164,113 +235,207 @@ export function SpvsRequirementsPage() {
     URL.revokeObjectURL(url);
   };
 
+  const handleDownloadSelectedJson = () => {
+    if (!selectedRequirements.length) {
+      return;
+    }
+
+    const payload = {
+      generatedAt: new Date().toISOString(),
+      filters,
+      requirements: selectedRequirements.map((requirement) => ({
+        id: requirement.id,
+        description: requirement.description,
+        categoryId: requirement.categoryId,
+        categoryName: requirement.categoryName,
+        subcategoryId: requirement.subcategoryId,
+        subcategoryName: requirement.subcategoryName,
+        levels: requirement.levels,
+        nistMapping: requirement.nistMapping,
+        owaspRisk: requirement.owaspRisk,
+        cweMapping: requirement.cweMapping,
+        cweDescription: requirement.cweDescription
+      }))
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json"
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `spvs-requirements-${Date.now()}.json`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleLinkRequirement = async (requirementId: string) => {
+    if (!workItemId || !hasRallyAccess || !rallyAccessToken) {
+      return;
+    }
+
+    try {
+      setLinkingRequirementId(requirementId);
+      await linkTaskToRally({
+        taskId: requirementId,
+        workItemId,
+        accessToken: rallyAccessToken,
+        metadata: {
+          standard: "SPVS"
+        }
+      });
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
+    } finally {
+      setLinkingRequirementId(null);
+    }
+  };
+
+  const createTicketDocument = async ({
+    ticketType,
+    title,
+    description
+  }: CreateTicketPayload) => {
+    if (!selectedRequirements.length) {
+      throw new Error("Please select at least one requirement.");
+    }
+
+    const ticket = {
+      generatedAt: new Date().toISOString(),
+      ticketType,
+      title,
+      description,
+      filters,
+      requirements: selectedRequirements.map((requirement) => ({
+        id: requirement.id,
+        category: `${requirement.categoryId} ${requirement.categoryName}`.trim(),
+        subcategory: requirement.subcategoryId
+          ? `${requirement.subcategoryId} ${requirement.subcategoryName}`.trim()
+          : null,
+        levels: requirement.levels,
+        description: requirement.description,
+        nistMapping: requirement.nistMapping,
+        owaspRisk: requirement.owaspRisk
+      }))
+    };
+
+    const blob = new Blob([JSON.stringify(ticket, null, 2)], {
+      type: "application/json"
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${ticketType}-${Date.now()}.json`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  };
+
+  const linkSelectedRequirements = async ({
+    ticketType,
+    workItemId: targetWorkItemId,
+    notes
+  }: LinkExistingPayload) => {
+    if (!hasRallyAccess || !rallyAccessToken) {
+      throw new Error("Rally integration is disabled.");
+    }
+
+    if (!selectedRequirements.length) {
+      throw new Error("Please select at least one requirement to link.");
+    }
+
+    await Promise.all(
+      selectedRequirements.map((requirement) =>
+        linkTaskToRally({
+          taskId: requirement.id,
+          workItemId: targetWorkItemId,
+          accessToken: rallyAccessToken,
+          metadata: {
+            ticketType,
+            notes,
+            levels: requirement.levels
+          }
+        })
+      )
+    );
+  };
+
+  if (!user) return null;
+
   return (
     <AppLayout
       title="SPVS requirements"
       subtitle="Explore Secure Pipeline Verification Standard controls, tailor filters, and export the result."
       actions={
-        <Button variant="secondary" onClick={handleReset}>
-          Clear filters
+        <Button variant="secondary" onClick={() => setFilters({ ...DEFAULT_FILTERS })}>
+          Reset all filters
         </Button>
       }
     >
       <div className="space-y-6">
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle>Filters</CardTitle>
-            <CardDescription>
-              Combine search, level, and taxonomy filters to focus on the requirements that match your pipeline.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="spvs-search">
-                  Keyword search
-                </label>
-                <Input
-                  id="spvs-search"
-                  placeholder="Search requirement IDs, text, or mappings…"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                />
+        <SpvsFilterBar
+          search={filters.search}
+          onSearchChange={(value) => updateFilters("search", value)}
+          levels={filters.levels}
+          onLevelsChange={(value) => updateFilters("levels", value)}
+          categories={filters.categories}
+          onCategoriesChange={(value) => updateFilters("categories", value)}
+          categoryOptions={categoryOptions}
+          workItemId={workItemId}
+          onWorkItemIdChange={setWorkItemId}
+          selectionCount={selectedCount}
+          onClearSelection={clearSelection}
+        />
+
+        {selectedCount > 0 && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle className="text-base">
+                  {selectedCount} requirement{selectedCount === 1 ? "" : "s"} selected
+                </CardTitle>
+                <CardDescription>
+                  Export or send these SPVS controls to Rally to plan remediation and hardening work.
+                </CardDescription>
               </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Levels</label>
-                <ToggleGroup
-                  type="multiple"
-                  value={levelValue}
-                  onValueChange={(values) =>
-                    setLevels(values.map((value) => value as SpvsLevel))
-                  }
-                  className="flex flex-wrap gap-2"
-                >
-                  {LEVEL_OPTIONS.map((level) => (
-                    <ToggleGroupItem
-                      key={level.value}
-                      value={level.value}
-                      className="flex-1 basis-[calc(33%-0.5rem)] text-xs sm:basis-[calc(20%-0.5rem)]"
-                    >
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="font-semibold">{level.value}</span>
-                        <span className="text-[11px] text-muted-foreground">{level.label}</span>
-                      </div>
-                    </ToggleGroupItem>
-                  ))}
-                </ToggleGroup>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={selectAllShown}>
+                  Select all shown
+                </Button>
+                <Button variant="outline" onClick={addShownToSelection}>
+                  Add shown
+                </Button>
+                <Button variant="outline" onClick={deselectShown}>
+                  Deselect shown
+                </Button>
+                <Button onClick={() => setTicketModalOpen(true)}>
+                  Send to ticket system
+                </Button>
+                <Button variant="outline" onClick={handleDownloadSelectedJson}>
+                  Download JSON
+                </Button>
               </div>
-            </div>
+            </CardHeader>
+          </Card>
+        )}
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Categories</label>
-              <ToggleGroup
-                type="multiple"
-                value={categoryValue}
-                onValueChange={(values) => setCategories(values)}
-                className="flex flex-wrap gap-2"
-              >
-                {categoryOptions.map((category) => (
-                  <ToggleGroupItem
-                    key={category.id}
-                    value={category.id}
-                    className="flex-1 basis-[calc(33%-0.5rem)] text-xs sm:basis-[calc(20%-0.5rem)]"
-                  >
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="font-mono text-sm">{category.id}</span>
-                      <span className="text-[11px] text-muted-foreground text-center">{category.name}</span>
-                    </div>
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Sub-categories</label>
-              <ToggleGroup
-                type="multiple"
-                value={subcategoryValue}
-                onValueChange={(values) => setSubcategories(values)}
-                className="flex flex-wrap gap-2"
-              >
-                {subcategoryOptions.map((subcategory) => (
-                  <ToggleGroupItem
-                    key={subcategory.id}
-                    value={subcategory.id}
-                    className="basis-full sm:basis-[calc(33%-0.5rem)] text-xs"
-                  >
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="font-mono text-sm">{subcategory.id}</span>
-                      <span className="text-[11px] text-muted-foreground text-center">
-                        {subcategory.name}
-                      </span>
-                    </div>
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
-            </div>
-          </CardContent>
-        </Card>
+        {requirements?.metadata && (
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {requirements.metadata.shortName} v{requirements.metadata.version}
+              </CardTitle>
+              <CardDescription>
+                Showing {requirements.metadata.resultCount} of{" "}
+                {requirements.metadata.totalRequirements} requirements
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        )}
 
         <Card className="shadow-sm">
           <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -279,98 +444,63 @@ export function SpvsRequirementsPage() {
               <CardDescription>
                 {requirementQuery.isLoading
                   ? "Loading SPVS requirements…"
-                  : `${requirements?.metadata?.resultCount ?? 0} of ${
-                      requirements?.metadata?.totalRequirements ??
-                      taxonomy?.metadata?.totalRequirements ??
-                      0
-                    } requirements`}
+                  : `${requirements?.metadata?.resultCount ?? 0} matches found`}
               </CardDescription>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button onClick={handleExport} disabled={!requirements?.requirements?.length}>
+              <Button onClick={handleExportCsv} disabled={!requirementList.length}>
                 Export CSV
               </Button>
             </div>
           </CardHeader>
         </Card>
 
-        <div className="space-y-4">
-          {requirementQuery.isLoading ? (
-            <Card>
-              <CardContent className="py-10 text-sm text-muted-foreground">
-                Fetching SPVS requirements…
-              </CardContent>
-            </Card>
-          ) : requirementQuery.isError ? (
-            <Card>
-              <CardContent className="py-10 text-sm text-destructive">
-                Unable to load SPVS requirements. Please adjust filters or try again shortly.
-              </CardContent>
-            </Card>
-          ) : requirements?.requirements.length ? (
-            requirements.requirements.map((requirement) => (
-              <Card key={requirement.id} className="shadow-sm">
-                <CardHeader>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <Badge variant="secondary" className="font-mono">
-                      {requirement.id}
-                    </Badge>
-                    <Badge>{requirement.categoryId}</Badge>
-                    {requirement.subcategoryId ? (
-                      <Badge variant="outline">{requirement.subcategoryId}</Badge>
-                    ) : null}
-                    <div className="flex flex-wrap gap-1">
-                      {requirement.levels.map((level) => (
-                        <Badge key={level} variant="outline">
-                          {level}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                  <CardTitle className="text-base font-medium">
-                    {requirement.categoryName} • {requirement.subcategoryName}
-                  </CardTitle>
-                  <CardDescription className="text-sm text-foreground">
-                    {requirement.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm text-muted-foreground">
-                  {requirement.nistMapping && (
-                    <p>
-                      <span className="font-medium text-foreground">NIST:</span> {requirement.nistMapping}
-                    </p>
-                  )}
-                  {requirement.owaspRisk && (
-                    <p>
-                      <span className="font-medium text-foreground">OWASP CI/CD Risk:</span>{" "}
-                      {requirement.owaspRisk}
-                    </p>
-                  )}
-                  {(requirement.cweMapping || requirement.cweDescription) && (
-                    <>
-                      <Separator />
-                      <p>
-                        <span className="font-medium text-foreground">CWE mapping:</span>{" "}
-                        {requirement.cweMapping || "—"}
-                      </p>
-                      <p>
-                        <span className="font-medium text-foreground">CWE description:</span>{" "}
-                        {requirement.cweDescription || "—"}
-                      </p>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            <Card>
-              <CardContent className="py-10 text-center text-sm text-muted-foreground">
-                No requirements match the selected filters.
-              </CardContent>
-            </Card>
-          )}
-        </div>
+        {requirementQuery.isLoading ? (
+          <Card>
+            <CardContent className="py-10 text-sm text-muted-foreground">
+              Fetching SPVS requirements…
+            </CardContent>
+          </Card>
+        ) : requirementQuery.isError ? (
+          <Card>
+            <CardContent className="py-10 text-sm text-destructive">
+              Unable to load SPVS requirements. Please adjust filters or try again shortly.
+            </CardContent>
+          </Card>
+        ) : requirementList.length ? (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {requirementList.map((requirement) => (
+              <SpvsRequirementCard
+                key={requirement.id}
+                requirement={requirement}
+                selected={selectedRequirementIds.has(requirement.id)}
+                onSelect={() => toggleSelection(requirement.id)}
+                onLink={() => void handleLinkRequirement(requirement.id)}
+                linking={linkingRequirementId === requirement.id}
+                hasRallyAccess={hasRallyAccess}
+                workItemProvided={Boolean(workItemId)}
+              />
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="py-10 text-center text-sm text-muted-foreground">
+              No requirements match the selected filters.
+            </CardContent>
+          </Card>
+        )}
       </div>
+
+      <SpvsTicketModal
+        open={ticketModalOpen}
+        onOpenChange={setTicketModalOpen}
+        selectedRequirements={selectedRequirements}
+        defaultWorkItemId={workItemId}
+        onCreateTicket={createTicketDocument}
+        onLinkExisting={linkSelectedRequirements}
+        hasRallyAccess={hasRallyAccess}
+        onSuccess={clearSelection}
+      />
     </AppLayout>
   );
 }

@@ -33,7 +33,6 @@ export type SpvsRequirementFilters = {
   search?: string;
   levels?: SpvsLevel[];
   categories?: string[];
-  subcategories?: string[];
 };
 
 const __filename = fileURLToPath(import.meta.url);
@@ -228,9 +227,6 @@ export function getSpvsRequirements(filters?: SpvsRequirementFilters): SpvsRequi
   const categorySet = filters?.categories?.length
     ? new Set(filters.categories.map((category) => category.toUpperCase()))
     : undefined;
-  const subcategorySet = filters?.subcategories?.length
-    ? new Set(filters.subcategories.map((subcategory) => subcategory.toUpperCase()))
-    : undefined;
 
   return SPVS_REQUIREMENTS.filter((requirement) => {
     if (levelSet) {
@@ -241,14 +237,6 @@ export function getSpvsRequirements(filters?: SpvsRequirementFilters): SpvsRequi
     }
 
     if (categorySet && !categorySet.has(requirement.categoryId)) {
-      return false;
-    }
-
-    if (
-      subcategorySet &&
-      requirement.subcategoryId &&
-      !subcategorySet.has(requirement.subcategoryId)
-    ) {
       return false;
     }
 

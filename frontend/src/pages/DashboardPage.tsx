@@ -206,8 +206,7 @@ export function DashboardPage() {
       state: {
         recommendedFilters: {
           levels: [spvsRecommendation.level],
-          categories: spvsRecommendation.focusCategories,
-          subcategories: spvsRecommendation.focusSubcategories
+          categories: spvsRecommendation.focusCategories
         }
       }
     });

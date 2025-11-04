@@ -103,7 +103,6 @@ export type SpvsRequirementFilters = {
   search?: string;
   levels?: SpvsLevel[];
   categories?: string[];
-  subcategories?: string[];
 };
 
 export type SpvsRequirementsResponse = {
@@ -116,7 +115,6 @@ export type SpvsRequirementsResponse = {
       search: string | null;
       levels: SpvsLevel[];
       categories: string[];
-      subcategories: string[];
     };
     resultCount: number;
   };
@@ -373,10 +371,6 @@ export async function fetchSpvsRequirements(filters?: SpvsRequirementFilters) {
 
   if (filters?.categories?.length) {
     searchParams.set("categories", filters.categories.join(","));
-  }
-
-  if (filters?.subcategories?.length) {
-    searchParams.set("subcategories", filters.subcategories.join(","));
   }
 
   const queryString = searchParams.toString();

@@ -103,8 +103,7 @@ export function SpvsQuestionnairePage() {
       state: {
         recommendedFilters: {
           levels: [recommendation.level],
-          categories: recommendation.focusCategories,
-          subcategories: recommendation.focusSubcategories
+          categories: recommendation.focusCategories
         }
       }
     });
