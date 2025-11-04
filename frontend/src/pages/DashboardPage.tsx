@@ -27,8 +27,10 @@ import { ROLE_DESCRIPTIONS } from "../lib/roles";
 import {
   fetchQuestionnaireResponse,
   fetchChecklistCategories,
+  fetchSpvsQuestionnaireResponse,
   type AsvsCategory,
-  type TechnologyTag
+  type TechnologyTag,
+  type SpvsQuestionnaireAnswersResponse
 } from "../lib/api";
 import type { QuestionnaireAnswersResponse } from "../lib/questionnaire";
 import {
@@ -79,6 +81,12 @@ export function DashboardPage() {
     enabled: Boolean(user?.id)
   });
 
+  const spvsQuestionnaireQuery = useQuery({
+    queryKey: ["spvs", "questionnaire", user?.id],
+    queryFn: () => fetchSpvsQuestionnaireResponse(user!.id),
+    enabled: Boolean(user?.id)
+  });
+
   const categoriesQuery = useQuery({
     queryKey: ["checklist", "categories"],
     queryFn: fetchChecklistCategories
@@ -94,6 +102,9 @@ export function DashboardPage() {
 
   const questionnaire = questionnaireQuery.data as QuestionnaireAnswersResponse | undefined;
   const recommended = questionnaire?.recommendations;
+  const spvsQuestionnaire =
+    spvsQuestionnaireQuery.data as SpvsQuestionnaireAnswersResponse | undefined;
+  const spvsRecommendation = spvsQuestionnaire?.recommendations;
 
   const [targets, setTargets] = useState<DashboardTargets>(DEFAULT_TARGETS);
   const [targetsLoaded, setTargetsLoaded] = useState(false);
@@ -187,6 +198,21 @@ export function DashboardPage() {
     });
   };
 
+  const handleApplySpvsRecommendation = () => {
+    if (!spvsRecommendation) {
+      return;
+    }
+    navigate("/spvs/requirements", {
+      state: {
+        recommendedFilters: {
+          levels: [spvsRecommendation.level],
+          categories: spvsRecommendation.focusCategories,
+          subcategories: spvsRecommendation.focusSubcategories
+        }
+      }
+    });
+  };
+
   const handleResetTargets = () => {
     const next = recommended
       ? {
@@ -225,6 +251,20 @@ export function DashboardPage() {
       description: "Connect selected controls to Rally stories, tasks, or epics via the adapter.",
       action: () => navigate("/checklist#rally"),
       cta: "View integrations"
+    },
+    {
+      title: "SPVS questionnaire",
+      description: spvsRecommendation
+        ? "Refresh pipeline responses to keep SPVS categories aligned with delivery changes."
+        : "Capture pipeline details to receive SPVS level and focus area guidance.",
+      action: () => navigate("/spvs/questionnaire"),
+      cta: spvsRecommendation ? "Edit SPVS questionnaire" : "Start SPVS questionnaire"
+    },
+    {
+      title: "SPVS requirements",
+      description: "Filter and export Secure Pipeline Verification requirements for your CI/CD stack.",
+      action: () => navigate("/spvs/requirements"),
+      cta: "Open SPVS requirements"
     }
   ];
 
@@ -459,6 +499,83 @@ export function DashboardPage() {
             </CardFooter>
           </Card>
         </section>
+
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-1">
+              <CardTitle>SPVS pipeline insights</CardTitle>
+              <CardDescription>
+                Understand which Secure Pipeline Verification controls to prioritise for your automation stack.
+              </CardDescription>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={() => navigate("/spvs/questionnaire")}>
+                {spvsRecommendation ? "Edit SPVS questionnaire" : "Start SPVS questionnaire"}
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={!spvsRecommendation}
+                onClick={handleApplySpvsRecommendation}
+              >
+                Apply to SPVS requirements
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm text-muted-foreground">
+            {spvsRecommendation ? (
+              <>
+                <div className="space-y-2">
+                  <span className="text-xs uppercase text-muted-foreground">Recommended level</span>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge>{spvsRecommendation.level}</Badge>
+                  </div>
+                </div>
+
+                {spvsRecommendation.focusCategories.length > 0 && (
+                  <div className="space-y-2">
+                    <span className="text-xs uppercase text-muted-foreground">Focus categories</span>
+                    <div className="flex flex-wrap gap-2">
+                      {spvsRecommendation.focusCategories.map((category) => (
+                        <Badge key={category} variant="outline">
+                          {category}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {spvsRecommendation.focusSubcategories.length > 0 && (
+                  <div className="space-y-2">
+                    <span className="text-xs uppercase text-muted-foreground">Priority sub-categories</span>
+                    <div className="flex flex-wrap gap-2">
+                      {spvsRecommendation.focusSubcategories.map((subcategory) => (
+                        <Badge key={subcategory} variant="secondary">
+                          {subcategory}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {spvsRecommendation.notes.length > 0 && (
+                  <div className="space-y-1">
+                    <span className="text-xs uppercase text-muted-foreground">Notes</span>
+                    <ul className="list-disc space-y-1 pl-4">
+                      {spvsRecommendation.notes.map((note, index) => (
+                        <li key={index}>{note}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </>
+            ) : (
+              <p>
+                Complete the SPVS questionnaire to receive level, category, and sub-category guidance tailored to your
+                CI/CD pipeline.
+              </p>
+            )}
+          </CardContent>
+        </Card>
 
         <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {quickActions.map((action) => (

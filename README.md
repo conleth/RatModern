@@ -92,6 +92,12 @@ Security notes:
 3. **Persist sessions** – Replace the in-memory auth context with a real identity provider and token storage.
 4. **Automate Rally linking** – Enhance `ChecklistPage` to fetch Rally work items, pre-populate suggestions, and display statuses.
 
+## SPVS support
+
+- **Pipeline questionnaire** – `/spvs/questionnaire` captures delivery-model context and returns SPVS levels, category focus, and implementation notes. Responses persist per user through `spvsQuestionnaireStore`.
+- **Requirements explorer** – `/spvs/requirements` lists Secure Pipeline Verification Standard controls with search, taxonomy filters, and CSV export. Backend data is sourced from `backend/src/data/spvs-1.0.0-en.csv`.
+- **API surface** – The backend exposes `/spvs/questionnaire`, `/spvs/questionnaire/questions`, `/spvs/taxonomy`, and `/spvs/requirements` to drive the new UI flows. Reuse these endpoints to integrate SPVS reporting into other tools.
+
 ## Sample `.env` template
 
 ```ini

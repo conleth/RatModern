@@ -5,6 +5,8 @@ import { ChecklistPage } from "./pages/ChecklistPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
 import { QuestionnairePage } from "./pages/QuestionnairePage";
+import { SpvsQuestionnairePage } from "./pages/SpvsQuestionnairePage";
+import { SpvsRequirementsPage } from "./pages/SpvsRequirementsPage";
 
 export default function App() {
   return (
@@ -31,6 +33,22 @@ export default function App() {
         element={
           <ProtectedRoute>
             <QuestionnairePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/spvs/questionnaire"
+        element={
+          <ProtectedRoute>
+            <SpvsQuestionnairePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/spvs/requirements"
+        element={
+          <ProtectedRoute>
+            <SpvsRequirementsPage />
           </ProtectedRoute>
         }
       />

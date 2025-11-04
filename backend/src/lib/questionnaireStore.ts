@@ -1,4 +1,3 @@
-import { DeveloperDiscipline, TechnologyTag, AsvsLevel, ApplicationType } from "./asvsData.js";
 import { QuestionnaireAnswers, QuestionnaireRecommendation } from "./questionnaireData.js";
 import { UserRole } from "../types/auth.js";
 
@@ -38,4 +37,3 @@ export class InMemoryQuestionnaireStore implements QuestionnaireStore {
 
 export const questionnaireStore: QuestionnaireStore =
   new InMemoryQuestionnaireStore();
-

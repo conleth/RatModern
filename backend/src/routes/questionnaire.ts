@@ -6,10 +6,7 @@ import {
   QuestionnaireAnswers,
   generateRecommendations
 } from "../lib/questionnaireData.js";
-import {
-  questionnaireStore,
-  QuestionnaireRecord
-} from "../lib/questionnaireStore.js";
+import { questionnaireStore } from "../lib/questionnaireStore.js";
 import { UserRole } from "../types/auth.js";
 
 const answerSchema = z.record(z.boolean());

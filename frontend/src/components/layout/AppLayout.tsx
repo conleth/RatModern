@@ -31,6 +31,12 @@ export function AppLayout({
   const { user, logout } = useAuth();
   const { pathname } = useLocation();
 
+  const isChecklist = pathname.startsWith("/checklist");
+  const isQuestionnaire = pathname === "/questionnaire";
+  const isSpvsQuestionnaire = pathname === "/spvs/questionnaire";
+  const isSpvsRequirements = pathname === "/spvs/requirements";
+  const isDashboard = pathname === "/dashboard";
+
   const initials = user
     ? user.name
         .split(" ")
@@ -53,7 +59,7 @@ export function AppLayout({
                   <NavigationMenuLink
                     asChild
                     className={cn(navigationMenuTriggerStyle, {
-                      "bg-accent text-accent-foreground": pathname === "/dashboard"
+                      "bg-accent text-accent-foreground": isDashboard
                     })}
                   >
                     <Link to="/dashboard">Dashboard</Link>
@@ -63,7 +69,7 @@ export function AppLayout({
                   <NavigationMenuLink
                     asChild
                     className={cn(navigationMenuTriggerStyle, {
-                      "bg-accent text-accent-foreground": pathname === "/checklist"
+                      "bg-accent text-accent-foreground": isChecklist
                     })}
                   >
                     <Link to="/checklist">Checklist</Link>
@@ -73,10 +79,30 @@ export function AppLayout({
                   <NavigationMenuLink
                     asChild
                     className={cn(navigationMenuTriggerStyle, {
-                      "bg-accent text-accent-foreground": pathname === "/questionnaire"
+                      "bg-accent text-accent-foreground": isQuestionnaire
                     })}
                   >
                     <Link to="/questionnaire">Questionnaire</Link>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    asChild
+                    className={cn(navigationMenuTriggerStyle, {
+                      "bg-accent text-accent-foreground": isSpvsQuestionnaire
+                    })}
+                  >
+                    <Link to="/spvs/questionnaire">SPVS Questionnaire</Link>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    asChild
+                    className={cn(navigationMenuTriggerStyle, {
+                      "bg-accent text-accent-foreground": isSpvsRequirements
+                    })}
+                  >
+                    <Link to="/spvs/requirements">SPVS Requirements</Link>
                   </NavigationMenuLink>
                 </NavigationMenuItem>
               </NavigationMenuList>

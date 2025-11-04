@@ -50,6 +50,90 @@ export type AsvsCategory = {
   ordinal: number;
 };
 
+export type SpvsLevel = "L1" | "L2" | "L3";
+
+export type SpvsQuestionnaireQuestion = {
+  id: string;
+  text: string;
+  helpText?: string;
+  tags: string[];
+};
+
+export type SpvsQuestionnaireRecommendation = {
+  level: SpvsLevel;
+  focusCategories: string[];
+  focusSubcategories: string[];
+  notes: string[];
+};
+
+export type SpvsQuestionnaireAnswersResponse = {
+  userId: string;
+  answers: Record<string, boolean>;
+  recommendations: SpvsQuestionnaireRecommendation;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SpvsCategory = {
+  id: string;
+  name: string;
+};
+
+export type SpvsSubcategory = {
+  id: string;
+  name: string;
+  categoryId: string;
+};
+
+export type SpvsRequirement = {
+  id: string;
+  description: string;
+  categoryId: string;
+  categoryName: string;
+  subcategoryId: string;
+  subcategoryName: string;
+  levels: SpvsLevel[];
+  nistMapping: string;
+  owaspRisk: string;
+  cweMapping: string;
+  cweDescription: string;
+};
+
+export type SpvsRequirementFilters = {
+  search?: string;
+  levels?: SpvsLevel[];
+  categories?: string[];
+  subcategories?: string[];
+};
+
+export type SpvsRequirementsResponse = {
+  metadata: {
+    name: string;
+    shortName: string;
+    version: string;
+    totalRequirements: number;
+    filters: {
+      search: string | null;
+      levels: SpvsLevel[];
+      categories: string[];
+      subcategories: string[];
+    };
+    resultCount: number;
+  };
+  requirements: SpvsRequirement[];
+};
+
+export type SpvsTaxonomyResponse = {
+  metadata: {
+    name: string;
+    shortName: string;
+    version: string;
+    totalRequirements: number;
+  };
+  categories: SpvsCategory[];
+  subcategories: SpvsSubcategory[];
+};
+
 export type TechnologyTag =
   | "typescript"
   | "javascript"
@@ -218,4 +302,93 @@ export async function fetchChecklistCategories() {
   }
 
   return (await response.json()) as { categories: AsvsCategory[] };
+}
+
+export async function fetchSpvsQuestionnaireQuestions() {
+  const response = await fetch(`${API_BASE_URL}/spvs/questionnaire/questions`);
+
+  if (!response.ok) {
+    throw new Error("Failed to load SPVS questionnaire questions");
+  }
+
+  return (await response.json()) as { questions: SpvsQuestionnaireQuestion[] };
+}
+
+export async function fetchSpvsQuestionnaireResponse(userId: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/spvs/questionnaire?userId=${encodeURIComponent(userId)}`
+  );
+
+  if (response.status === 404) {
+    return undefined;
+  }
+
+  if (!response.ok) {
+    throw new Error("Failed to load SPVS questionnaire response");
+  }
+
+  return (await response.json()) as SpvsQuestionnaireAnswersResponse;
+}
+
+export async function saveSpvsQuestionnaireResponse({
+  userId,
+  answers
+}: {
+  userId: string;
+  answers: Record<string, boolean>;
+}) {
+  const response = await fetch(`${API_BASE_URL}/spvs/questionnaire`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId, answers })
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to save SPVS questionnaire responses");
+  }
+
+  return (await response.json()) as SpvsQuestionnaireAnswersResponse;
+}
+
+export async function fetchSpvsTaxonomy() {
+  const response = await fetch(`${API_BASE_URL}/spvs/taxonomy`);
+
+  if (!response.ok) {
+    throw new Error("Failed to load SPVS taxonomy");
+  }
+
+  return (await response.json()) as SpvsTaxonomyResponse;
+}
+
+export async function fetchSpvsRequirements(filters?: SpvsRequirementFilters) {
+  const searchParams = new URLSearchParams();
+
+  if (filters?.search) {
+    searchParams.set("search", filters.search);
+  }
+
+  if (filters?.levels?.length) {
+    searchParams.set("levels", filters.levels.join(","));
+  }
+
+  if (filters?.categories?.length) {
+    searchParams.set("categories", filters.categories.join(","));
+  }
+
+  if (filters?.subcategories?.length) {
+    searchParams.set("subcategories", filters.subcategories.join(","));
+  }
+
+  const queryString = searchParams.toString();
+  const url = queryString
+    ? `${API_BASE_URL}/spvs/requirements?${queryString}`
+    : `${API_BASE_URL}/spvs/requirements`;
+
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error("Failed to load SPVS requirements");
+  }
+
+  return (await response.json()) as SpvsRequirementsResponse;
 }
