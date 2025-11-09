@@ -8,3 +8,12 @@ backend/node_modules
 backend/dist
 .idea
 .vscode
+# Playwright artifacts
+frontend/test-results
+frontend/playwright-report
+frontend/.playwright-cache
+# Vitest coverage
+backend/coverage
+frontend/coverage
+# Local logs & traces
+/tmp/frontend-dev.log

@@ -98,6 +98,31 @@ Security notes:
 - **Requirements explorer** – `/spvs/requirements` lists Secure Pipeline Verification Standard controls with search, taxonomy filters, and CSV export. Backend data is sourced from `backend/src/data/spvs-1.0.0-en.csv`.
 - **API surface** – The backend exposes `/spvs/questionnaire`, `/spvs/questionnaire/questions`, `/spvs/taxonomy`, and `/spvs/requirements` to drive the new UI flows. Reuse these endpoints to integrate SPVS reporting into other tools.
 
+## Testing
+
+### Backend
+
+Vitest covers the SPVS data helpers and questionnaire logic.
+
+```bash
+cd backend
+npm install
+npm run test        # or npm run test:coverage
+```
+
+### Frontend
+
+Component tests rely on Vitest + Testing Library; UI smoke tests use Playwright.
+
+```bash
+cd frontend
+npm install
+npm run test            # unit/component suite
+npm run test:ui         # assumes the dev server is running locally
+```
+
+Set `PLAYWRIGHT_BASE_URL` if your dev server is bound to a different host/port.
+
 ## Sample `.env` template
 
 ```ini
