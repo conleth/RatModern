@@ -1,15 +1,17 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { SpvsRequirement } from "../../../lib/api";
 import { SpvsRequirementCard } from "../RequirementCard";
 
-const requirement = {
+const requirement: SpvsRequirement = {
   id: "V3.1.1",
   description: "Verify hosted runners are hardened.",
   categoryId: "V3",
   categoryName: "Integrate",
   subcategoryId: "V3.1",
   subcategoryName: "Security of Pipeline Environment",
-  levels: ["L2", "L3"] as const,
+  levels: ["L2", "L3"],
   nistMapping: "RA-5",
   owaspRisk: "CICD-SEC-3",
   cweMapping: "CWE-693",

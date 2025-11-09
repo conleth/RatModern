@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 
 import { SpvsFilterBar } from "../FilterBar";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 describe("SpvsFilterBar", () => {
   const defaultProps = {
