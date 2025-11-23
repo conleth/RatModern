@@ -12,7 +12,7 @@ import {
   CardContent
 } from "../components/ui/card";
 import { useAuth } from "../lib/auth";
-import { linkTaskToRally, fetchChecklistCategories } from "../lib/api";
+import { linkTaskToRally, fetchChecklistCategories, createRallyTicket } from "../lib/api";
 import { ROLE_LABELS } from "../lib/roles";
 import { getDisciplineLabel, getTechnologyLabel } from "../lib/developerOptions";
 import { FilterBar } from "../components/checklist/FilterBar";
@@ -192,38 +192,26 @@ export function ChecklistPage() {
   };
 
   const createTicketDocument = async (payload: CreateTicketPayload) => {
-    const ticket = {
-      generatedAt: new Date().toISOString(),
+    if (!hasRallyAccess || !rallyAccessToken) {
+      throw new Error("Rally integration is disabled.");
+    }
+
+    // Create the ticket with related control IDs
+    const result = await createRallyTicket({
       ticketType: payload.ticketType,
       title: payload.title,
       description: payload.description,
-      filters,
-      role: user.role,
-      controls: selectedControls.map((control) => ({
-        id: control.id,
-        shortcode: control.shortcode,
-        description: control.description,
-        level: control.level,
-        category: control.category,
-        section: control.section,
-        recommendedRoles: control.recommendedRoles,
-        disciplines: control.disciplines,
-        technologies: control.technologies,
-        applicationTypes: control.applicationTypes
-      }))
-    };
-
-    const blob = new Blob([JSON.stringify(ticket, null, 2)], {
-      type: "application/json"
+      relatedItems: selectedControls.map((c) => c.id),
+      accessToken: rallyAccessToken,
+      metadata: {
+        level: filters.level,
+        applicationType: filters.applicationType,
+        role: user.role,
+        controlCount: selectedControls.length
+      }
     });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${payload.ticketType}-${Date.now()}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+
+    return result;
   };
 
   const linkSelectedControls = async (payload: LinkExistingPayload) => {
