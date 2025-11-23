@@ -14,6 +14,7 @@ export type ChecklistRequest = {
   technology?: TechnologyTag | null;
   discipline?: DeveloperDiscipline | null;
   categories?: string[] | null;
+  search?: string | null;
 };
 
 export type ChecklistControl = {

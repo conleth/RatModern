@@ -178,7 +178,8 @@ export function useChecklist(role: UserRole | undefined) {
       filters.applicationType,
       filters.discipline,
       filters.technology,
-      filters.categories
+      filters.categories,
+      filters.search
     ],
     queryFn: ({ signal }) =>
       requestChecklist(
@@ -188,7 +189,8 @@ export function useChecklist(role: UserRole | undefined) {
           role: role ?? "developer",
           discipline: filters.discipline === "all" ? null : filters.discipline,
           technology: filters.technology === "all" ? null : filters.technology,
-          categories: filters.categories.length ? filters.categories : null
+          categories: filters.categories.length ? filters.categories : null,
+          search: filters.search.trim() || null
         },
         signal
       ) as Promise<ChecklistResponse>,

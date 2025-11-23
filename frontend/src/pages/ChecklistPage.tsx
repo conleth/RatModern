@@ -63,32 +63,7 @@ export function ChecklistPage() {
 
   const rawTasks = data?.tasks ?? [];
   const metadata = data?.metadata;
-  const filteredTasks = useMemo(() => {
-    if (!filters.search.trim()) {
-      return rawTasks;
-    }
-    const terms = filters.search
-      .toLowerCase()
-      .split(/\s+/)
-      .filter(Boolean);
-
-    return rawTasks.filter((task) => {
-      const haystack = (
-        `${task.shortcode} ${task.section} ${task.sectionShortcode} ${task.category} ${task.description}`
-      ).toLowerCase();
-      return terms.every((term) => {
-        let index = 0;
-        for (const char of term) {
-          index = haystack.indexOf(char, index);
-          if (index === -1) {
-            return false;
-          }
-          index += 1;
-        }
-        return true;
-      });
-    });
-  }, [rawTasks, filters.search]);
+  const filteredTasks = rawTasks;
 
   const selectedCount = selectedTaskIds.size;
   const selectedControls = useMemo(
