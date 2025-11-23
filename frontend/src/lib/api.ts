@@ -244,6 +244,51 @@ export async function linkTaskToRally({
   }
 }
 
+export type CreateRallyTicketPayload = {
+  ticketType: "story" | "task" | "defect" | "epic";
+  title: string;
+  description: string;
+  relatedItems?: string[];
+  metadata?: Record<string, unknown>;
+};
+
+export type CreateRallyTicketResponse = {
+  id: string;
+  url: string;
+  status: string;
+};
+
+export async function createRallyTicket({
+  ticketType,
+  title,
+  description,
+  relatedItems,
+  accessToken,
+  metadata
+}: CreateRallyTicketPayload & { accessToken: string; metadata?: Record<string, unknown> }): Promise<CreateRallyTicketResponse> {
+  const response = await fetch(`${API_BASE_URL}/ticketing/rally/create`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`
+    },
+    body: JSON.stringify({
+      ticketType,
+      title,
+      description,
+      relatedItems,
+      metadata
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to create Rally ticket: ${errorText}`);
+  }
+
+  return (await response.json()) as CreateRallyTicketResponse;
+}
+
 export async function fetchQuestionnaireQuestions() {
   const response = await fetch(`${API_BASE_URL}/questionnaire/questions`);
 

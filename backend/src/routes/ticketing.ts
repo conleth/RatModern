@@ -20,6 +20,14 @@ const linkSchema = z.object({
   metadata: z.record(z.any()).optional()
 });
 
+const createSchema = z.object({
+  ticketType: z.enum(["story", "task", "defect", "epic"]),
+  title: z.string().min(1, "Title is required"),
+  description: z.string().min(1, "Description is required"),
+  relatedItems: z.array(z.string()).optional(),
+  metadata: z.record(z.any()).optional()
+});
+
 export function registerTicketingRoutes(app: FastifyInstance) {
   app.post("/ticketing/rally/link", async (request, reply) => {
     const parseResult = linkSchema.safeParse(request.body);
@@ -48,6 +56,37 @@ export function registerTicketingRoutes(app: FastifyInstance) {
     } catch (error) {
       request.log.error({ err: error }, "Failed to link Rally work item");
       return reply.internalServerError("Failed to link Rally work item");
+    }
+  });
+
+  app.post("/ticketing/rally/create", async (request, reply) => {
+    const parseResult = createSchema.safeParse(request.body);
+
+    if (!parseResult.success) {
+      return reply.badRequest(parseResult.error.message);
+    }
+
+    const authorization = request.headers.authorization;
+    if (!authorization?.startsWith("Bearer ")) {
+      return reply.unauthorized("Missing Rally access token");
+    }
+
+    const accessToken = authorization.replace("Bearer ", "");
+
+    const adapter = getTicketingAdapter("rally");
+
+    const context: TicketingContext = {
+      accessToken,
+      userRole: "developer"
+    };
+
+    try {
+      const result = await adapter.createTask(parseResult.data, context);
+      return reply.status(201).send(result);
+    } catch (error) {
+      request.log.error({ err: error }, "Failed to create Rally ticket");
+      const errorMsg = error instanceof Error ? error.message : "Failed to create ticket";
+      return reply.internalServerError(errorMsg);
     }
   });
 }

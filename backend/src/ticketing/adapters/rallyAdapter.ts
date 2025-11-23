@@ -4,6 +4,8 @@ import { loadRallyConfig } from "../../config/rally.js";
 import {
   AdapterFactory,
   LinkRallyPayload,
+  CreateTicketPayload,
+  CreateTicketResponse,
   TicketingAdapter,
   TicketingContext
 } from "../ticketingAdapter.js";
@@ -81,6 +83,67 @@ class RallyAdapter implements TicketingAdapter {
       const text = await response.text();
       throw new Error(`Failed to link Rally work item: ${text}`);
     }
+  }
+
+  async createTask(
+    payload: CreateTicketPayload,
+    context: TicketingContext
+  ): Promise<CreateTicketResponse> {
+    const config = loadRallyConfig();
+
+    // Map ticket types to Rally artifact types
+    const rallyTypeMap: Record<string, string> = {
+      story: "hierarchicalrequirement",
+      task: "task",
+      defect: "defect",
+      epic: "portfolioitem/feature"
+    };
+
+    const rallyType = rallyTypeMap[payload.ticketType] || "task";
+
+    const response = await fetch(`${config.apiBaseUrl}/${rallyType}/create`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${context.accessToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        Name: payload.title,
+        Description: payload.description,
+        Schedule: {
+          _ref: "/release/default" // Default release; can be customized
+        },
+        CustomFields: {
+          OWASPGenerated__c: true,
+          UserRole__c: context.userRole,
+          ...payload.metadata
+        },
+        RelatedItems: payload.relatedItems?.map((item) => ({ _ref: item })) ?? []
+      })
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Failed to create Rally ticket: ${response.status} ${text}`);
+    }
+
+    const result = (await response.json()) as {
+      CreateResult: {
+        Object: {
+          _ref: string;
+          ObjectID: number;
+        };
+      };
+    };
+
+    const rallyUrl = `${config.apiBaseUrl}${result.CreateResult.Object._ref}`;
+    const ticketId = result.CreateResult.Object._ref.split("/").pop() || "unknown";
+
+    return {
+      id: ticketId,
+      url: rallyUrl,
+      status: "created"
+    };
   }
 
   async getWorkItem(
