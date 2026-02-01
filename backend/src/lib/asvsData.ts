@@ -387,6 +387,30 @@ export function getAsvsControlById(id: string) {
   return controlsById.get(id);
 }
 
+function matchesSearchTerm(control: FlattenedAsvsControl, search?: string): boolean {
+  if (!search) {
+    return true;
+  }
+
+  const normalized = search.trim().toLowerCase();
+  if (!normalized) {
+    return true;
+  }
+
+  const searchableText = [
+    control.shortcode,
+    control.description,
+    control.section,
+    control.sectionShortcode,
+    control.category,
+    control.categoryShortcode
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  return searchableText.includes(normalized);
+}
+
 export function getAsvsChecklist(
   level: AsvsLevel,
   applicationType: ApplicationType,
@@ -395,6 +419,7 @@ export function getAsvsChecklist(
     discipline?: DeveloperDiscipline;
     technology?: TechnologyTag;
     categories?: string[];
+    search?: string;
   }
 ): FlattenedAsvsControl[] {
   const maximumLevel = levelToNumber(level);
@@ -430,6 +455,10 @@ export function getAsvsChecklist(
         if (!control.technologies.includes(options.technology)) {
           return false;
         }
+      }
+
+      if (!matchesSearchTerm(control, options?.search)) {
+        return false;
       }
 
       return true;

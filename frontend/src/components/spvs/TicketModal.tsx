@@ -37,10 +37,10 @@ type SpvsTicketModalProps = {
   onOpenChange: (open: boolean) => void;
   selectedRequirements: SpvsRequirement[];
   defaultWorkItemId?: string;
-  onCreateTicket: (payload: CreateTicketPayload) => Promise<void>;
+  onCreateTicket: (payload: CreateTicketPayload) => Promise<{ id: string; url: string; status: string } | void>;
   onLinkExisting: (payload: LinkExistingPayload) => Promise<void>;
   hasRallyAccess: boolean;
-  onSuccess: () => void;
+  onSuccess: (ticketUrl?: string) => void;
 };
 
 const TICKET_TYPE_OPTIONS: { value: TicketType; label: string }[] = [
@@ -70,11 +70,23 @@ export function SpvsTicketModal({
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const WORKITEM_STORAGE_KEY = "rally-workitem-id";
+
   useEffect(() => {
     if (open) {
-      setLinkWorkItemId(defaultWorkItemId ?? "");
+      // Prefer defaultWorkItemId prop, then fall back to localStorage
+      const workItemId = defaultWorkItemId ?? localStorage.getItem(WORKITEM_STORAGE_KEY) ?? "";
+      setLinkWorkItemId(workItemId);
     }
   }, [open, defaultWorkItemId]);
+
+  // Save workItemId to localStorage when it changes
+  const handleWorkItemIdChange = (value: string) => {
+    setLinkWorkItemId(value);
+    if (value.trim()) {
+      localStorage.setItem(WORKITEM_STORAGE_KEY, value);
+    }
+  };
 
   const totalRequirements = selectedRequirements.length;
 
@@ -102,11 +114,12 @@ export function SpvsTicketModal({
         if (!createTitle.trim()) {
           throw new Error("Please provide a ticket title.");
         }
-        await onCreateTicket({
+        const result = await onCreateTicket({
           ticketType: createTicketType,
           title: createTitle.trim(),
           description: createDescription.trim()
         });
+        onSuccess(result?.url);
       } else {
         if (!hasRallyAccess) {
           throw new Error("Rally integration is disabled.");
@@ -119,8 +132,8 @@ export function SpvsTicketModal({
           workItemId: linkWorkItemId.trim(),
           notes: linkNotes.trim() || undefined
         });
+        onSuccess();
       }
-      onSuccess();
       onOpenChange(false);
     } catch (error) {
       setSubmissionError(
@@ -150,20 +163,23 @@ export function SpvsTicketModal({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Send to ticket system</DialogTitle>
-          <DialogDescription>
-            {totalRequirements} SPVS requirement{totalRequirements === 1 ? "" : "s"} selected. Create a new ticket or link them to an existing work item.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="p-0 flex flex-col">
+        <div className="p-4">
+          <DialogHeader>
+            <DialogTitle>Send to ticket system</DialogTitle>
+            <DialogDescription>
+              {totalRequirements} SPVS requirement{totalRequirements === 1 ? "" : "s"} selected. Create a new ticket or link them to an existing work item.
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-        <div className="space-y-6">
-          <section className="space-y-3">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              Summary
-            </h3>
-            <div className="space-y-2">
+        <div className="overflow-y-auto flex-1 px-4">
+          <div className="space-y-6 pb-4">
+            <section className="space-y-3">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                Summary
+              </h3>
+              <div className="space-y-2">
               {requirementSummary.map((requirement) => (
                 <div
                   key={requirement.id}
@@ -291,7 +307,7 @@ export function SpvsTicketModal({
                       id="spvs-link-work-item"
                       value={linkWorkItemId}
                       placeholder="ex: US123456"
-                      onChange={(event) => setLinkWorkItemId(event.target.value)}
+                      onChange={(event) => handleWorkItemIdChange(event.target.value)}
                     />
                   </div>
                 </div>
@@ -312,16 +328,19 @@ export function SpvsTicketModal({
           {submissionError && (
             <p className="text-sm text-destructive">{submissionError}</p>
           )}
+          </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Submitting…" : mode === "create" ? "Create ticket" : "Link requirements"}
-          </Button>
-        </DialogFooter>
+        <div className="border-t p-4">
+          <DialogFooter>
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmit} disabled={submitting}>
+              {submitting ? "Submitting…" : mode === "create" ? "Create ticket" : "Link requirements"}
+            </Button>
+          </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

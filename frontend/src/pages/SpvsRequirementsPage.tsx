@@ -16,6 +16,7 @@ import {
   fetchSpvsRequirements,
   fetchSpvsTaxonomy,
   linkTaskToRally,
+  createRallyTicket,
   type SpvsLevel,
   type SpvsRequirementsResponse
 } from "../lib/api";
@@ -303,36 +304,25 @@ export function SpvsRequirementsPage() {
       throw new Error("Please select at least one requirement.");
     }
 
-    const ticket = {
-      generatedAt: new Date().toISOString(),
+    if (!hasRallyAccess || !rallyAccessToken) {
+      throw new Error("Rally integration is disabled.");
+    }
+
+    // Create the ticket with related requirement IDs
+    const result = await createRallyTicket({
       ticketType,
       title,
       description,
-      filters,
-      requirements: selectedRequirements.map((requirement) => ({
-        id: requirement.id,
-        category: `${requirement.categoryId} ${requirement.categoryName}`.trim(),
-        subcategory: requirement.subcategoryId
-          ? `${requirement.subcategoryId} ${requirement.subcategoryName}`.trim()
-          : null,
-        levels: requirement.levels,
-        description: requirement.description,
-        nistMapping: requirement.nistMapping,
-        owaspRisk: requirement.owaspRisk
-      }))
-    };
-
-    const blob = new Blob([JSON.stringify(ticket, null, 2)], {
-      type: "application/json"
+      relatedItems: selectedRequirements.map((r) => r.id),
+      accessToken: rallyAccessToken,
+      metadata: {
+        standard: "SPVS",
+        levels: filters.levels,
+        requirementCount: selectedRequirements.length
+      }
     });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `${ticketType}-${Date.now()}.json`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-    URL.revokeObjectURL(url);
+
+    return result;
   };
 
   const linkSelectedRequirements = async ({

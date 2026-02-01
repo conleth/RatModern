@@ -55,6 +55,10 @@ const checklistRequestSchema = z.object({
   categories: z
     .array(z.string())
     .optional()
+    .nullable(),
+  search: z
+    .string()
+    .optional()
     .nullable()
 });
 
@@ -70,7 +74,7 @@ export function registerChecklistRoutes(app: FastifyInstance) {
       return reply.badRequest("Invalid checklist request payload");
     }
 
-    const { level, applicationType, role, technology, discipline, categories } =
+    const { level, applicationType, role, technology, discipline, categories, search } =
       parseResult.data as {
         level: AsvsLevel;
         applicationType: ApplicationType;
@@ -78,13 +82,15 @@ export function registerChecklistRoutes(app: FastifyInstance) {
         technology?: TechnologyTag | null;
         discipline?: DeveloperDiscipline | null;
         categories?: string[] | null;
+        search?: string | null;
       };
 
     const tasks = getAsvsChecklist(level, applicationType, role, {
       technology: technology ?? undefined,
       discipline: discipline ?? undefined,
       categories:
-        categories?.map((category) => category.toUpperCase()) ?? undefined
+        categories?.map((category) => category.toUpperCase()) ?? undefined,
+      search: search ?? undefined
     });
 
     return {
